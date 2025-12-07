@@ -90,12 +90,28 @@ SIMPLE_JWT = {
 DJOSER = {
     # "LOGIN_FIELD": "email",  
     "USER_CREATE_PASSWORD_RETYPE": True,
+    "PASSWORD_RESET_CONFIRM_RETYPE": True,
+    "USER_DELETE_PASSWORD_CONFIRM": True,
+    "TOKEN_MODEL": None,
+
+    "PASSWORD_RESET_CONFIRM_URL":"password/reset/confirm/{uid}/{token}/"
+
     # "SERIALIZERS": {
     #     "user_create": "djoser.serializers.UserCreateSerializer",
     #     "user": "djoser.serializers.UserSerializer",
     #     "current_user": "djoser.serializers.UserSerializer",
     # },
 }
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 CORS_ALLOW_ALL_ORIGINS = True
