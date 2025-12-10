@@ -2,7 +2,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from djoser.serializers import UserCreatePasswordRetypeSerializer as DjoserUserCreatePasswordRetypeSerializer
-from djoser.serializers import SetPasswordRetypeSerializer
+from djoser.serializers import SetPasswordSerializer
 import re
 
 User = get_user_model()
@@ -57,3 +57,4 @@ class UserCreateSerializer(DjoserUserCreatePasswordRetypeSerializer):
             raise serializers.ValidationError(errors)
         
         return attrs
+
