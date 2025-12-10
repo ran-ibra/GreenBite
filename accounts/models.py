@@ -6,9 +6,9 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, blank=False)
     frist_name = models.CharField(blank=False, max_length=20 , )
     last_name = models.CharField(blank=False , max_length=20 , )
-    REQUIRED_FIELDS = ['email', 'frist_name', 'last_name']
-    
+    REQUIRED_FIELDS = ["id", "username",'first_name', 'last_name']
+    USERNAME_FIELD = "email"
+
     def __str__(self):
         return self.username
-    
     
