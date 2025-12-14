@@ -1,31 +1,59 @@
-export default function App() {
+import React from "react";
+import { NavLink } from "react-router-dom";
+import logo from "@/assets/images/Verticallogo.svg";
+const SideMenu = () => {
   return (
-    <div className="h-screen bg-zinc-900 flex items-center justify-center">
-      <button
-        data-modal-target="test-modal"
-        data-modal-toggle="test-modal"
-        className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-500"
-      >
-        Open Modal
-      </button>
-
-      <div
-        id="test-modal"
-        tabIndex="-1"
-        className="fixed left-0 right-0 top-0 z-50 hidden h-screen w-full items-center justify-center bg-black/50"
-      >
-        <div className="relative w-full max-w-md rounded-lg bg-white p-6">
-          <h3 className="mb-4 text-xl font-semibold text-gray-900">
-            Flowbite شغال ✅
-          </h3>
-          <button
-            data-modal-hide="test-modal"
-            className="rounded bg-red-600 px-4 py-2 text-white"
-          >
-            Close
-          </button>
+    <div className="min-h-screen flex bg-gray-100">
+      {/* Side Menu */}
+      <aside className="w-64 bg-white shadow-lg">
+        <div className="p-6 font-bold text-xl border-b">
+          <img src={logo} className="w-20" />
         </div>
-      </div>
+
+        <nav className="p-4 space-y-2">
+          <NavLink
+            to="/home"
+            end
+            className={({ isActive }) =>
+              `block px-4 py-2 rounded ${
+                isActive
+                  ? "bg-green-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`
+            }
+          >
+            Home
+          </NavLink>
+
+          <NavLink
+            to="/home/testoo"
+            className={({ isActive }) =>
+              `block px-4 py-2 rounded ${
+                isActive
+                  ? "bg-green-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`
+            }
+          >
+            Testoo
+          </NavLink>
+
+          <NavLink
+            to="/home/testooo"
+            className={({ isActive }) =>
+              `block px-4 py-2 rounded ${
+                isActive
+                  ? "bg-green-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`
+            }
+          >
+            Testooo
+          </NavLink>
+        </nav>
+      </aside>
     </div>
   );
-}
+};
+
+export default SideMenu;
