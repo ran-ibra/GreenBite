@@ -4,8 +4,8 @@ import HomePage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import DashBoardPage from "./pages/HomePages/DashBoardHome";
 import HomeLayout from "./layouts/HomeLayout";
+import NotFound from "./pages/NotFound";
 // import PrivateRoute from "./utils/PrivateRoute";
-
 import Testoo from "./pages/HomePages/testoo";
 import Testooo from "./pages/HomePages/testooo";
 
@@ -16,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} exact />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<NotFound />} />
           {/* <Route element={<PrivateRoute />}></Route> */}
           <Route path="/home" element={<HomeLayout />}>
             <Route index element={<DashBoardPage />} />
