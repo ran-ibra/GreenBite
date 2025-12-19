@@ -6,8 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0004_alter_user_id'),
-        ('accounts', '0006_alter_user_id'),
+        ('food', '0004_alter_foodlogsys_id_alter_meal_id'),
+        ('food', '0004_alter_foodlogsys_id_alter_meal_id_alter_meal_waste_and_more'),
     ]
 
     operations = [
