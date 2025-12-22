@@ -34,6 +34,7 @@ class GenerateMealsAPIView(APIView):
             {"meals": ai_recipes},
             status=200
         )
+    
 
 
 class SaveAIMealAPIView(APIView):
