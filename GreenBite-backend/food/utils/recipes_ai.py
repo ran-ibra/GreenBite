@@ -25,16 +25,22 @@ LANGUAGE RULE:
 
 STRICT RULES:
 - Output MUST be valid JSON only. No markdown. No explanations.
-- Do NOT add extra ingredients except: salt, pepper, oil, water.
+- Do NOT add extra ingredients except: spices, salt, pepper, oil, water.
 - Title must be ≤ 8 words.
 - Description must be ≤ 25 words.
 - Steps must be a list of short clear strings.
 - DO NOT include calories or nutrition fields at all.
 - You MUST analyze each ingredient.
-- If an ingredient naturally produces an inedible part(peel, shell, bone, seed, stem, tea bag),you MUST include it in waste_items.
+- If an ingredient naturally produces an inedible part
+  (peel, shell, bone, seed, stem, tea bag),
+  you MUST include it in waste_items.
 - Do NOT skip waste if it exists.
 - ONLY include waste that comes directly from the listed ingredients.
 - If and ONLY IF no ingredient has inedible parts, return [].
+- Each waste item MUST have:
+   - name: name of the waste item (e.g., "banana peel")
+   - reason: why it's waste (e.g., "inedible part only")
+   - disposal: one of [compost, trash, recycle]
 
 RESPONSE FORMAT (exactly this shape):
 
