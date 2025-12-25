@@ -31,8 +31,13 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
 
+
 # Example: ALLOWED_HOSTS="127.0.0.1 localhost"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split() or []
+
+# just for testing 
+ALLOWED_HOSTS = ["*"]
+
+# ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split() or []
 
 
 # Application definition
@@ -44,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "django.contrib.postgres",
     "django.contrib.sites",
 
 
@@ -53,13 +59,15 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'djoser',
-
+    'drf_yasg',
+    'django_filters',
 
 
     # apps
     "project",  
     "accounts",
     "food",
+    "recipes",
 ]
 SITE_ID = 1
 # -------------------------------------------------
@@ -79,8 +87,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/day",
-        "user": "1000/day",
+        "anon": "100/minute",
+        "user": "1000/minute",
     }
 }
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -106,6 +114,8 @@ DJOSER = {
     "TOKEN_MODEL": None, 
     "PASSWORD_RESET_CONFIRM_URL":"password/reset/confirm/{uid}/{token}/", 
     "ACTIVATION_URL": "activate/{uid}/{token}/", 
+    
+
     "SERIALIZERS": {
         "user_create": "accounts.serializers.UserCreateSerializer",
         "user_create_password_retype": "accounts.serializers.UserCreateSerializer",
@@ -114,10 +124,9 @@ DJOSER = {
     #     "activation": "accounts.email.CustomActivationEmail",
     # },
 }
-    
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")

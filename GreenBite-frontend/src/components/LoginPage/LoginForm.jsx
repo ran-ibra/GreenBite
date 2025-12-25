@@ -10,7 +10,7 @@ const passwordRegex = /^[^\s]{1,128}$/;
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const [formData, setFromData] = useState({
     email: "",
@@ -21,6 +21,7 @@ export default function LoginForm() {
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const validateForm = () => {
     let errors = {
@@ -39,19 +40,19 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
     const isValid = validateForm();
     if (!isValid) return;
+    setLoading(true);
     try {
       await login(formData);
       console.log("login succse");
       navigate("/home");
     } catch (error) {
-      if (error.response?.data?.non_field_errors) {
-      alert("Account not activated. Please check your email.");
-      } else {
-        console.log(`login failed ${error}`);
-        setFormError("Invalid email or password ");
-      }
+      console.log(`login failed ${error}`);
+      setFormError("Invalid email or password ");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,14 +152,13 @@ export default function LoginForm() {
         {/* Submit Button */}
         <Button
           type="submit"
-          className="w-full h-11 lg:h-12 text-sm lg:text-base font-semibold cursor-pointer"
+          className="w-full h-11 lg:h-12 text-sm lg:text-base font-semibold cursor-pointer select-none "
           color="green"
           outline
-          disabled={loading}
+          disabled={loading || !formData.email || !formData.password}
         >
           Login
         </Button>
-
         {/* Signup Link */}
         <p className="text-center text-sm lg:text-base text-gray-700 pt-1">
           Don't have an account?{" "}

@@ -21,11 +21,11 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
         # Username validation
         USERNAME_REGEX = r'^[a-zA-Z0-9_]{3,30}$'
         if not re.fullmatch(USERNAME_REGEX, username):
-            errors.setdefault("username", []).append(
-                "Username must contain only letters, numbers, and underscores (3–30 chars)."
-            )
-
-        # Password validation
+            errors.setdefault("username", []).append("Username must contain only letters, numbers, and underscores (3–30 chars).")
+        
+        ############################################
+        # password valdation
+        ############################################
         PASSWORD_REGEX = r'[!@#$%^&*()_+\-=\[\]{};\'":\\|,.<>/?`~]'
         if not re.search(PASSWORD_REGEX, password):
             errors.setdefault("password", []).append(
