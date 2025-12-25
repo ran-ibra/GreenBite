@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from ..serializers import MealGenerationSerializer, SaveAIMealSerializer
 from ..utils.recipes_ai import generate_recipes_with_cache, generate_waste_profile_with_cache, generate_meals_openai, mealdb_recipe_to_ai_shape
 
-import random
+import random, logging
 
 
 class GenerateMealsAPIView(APIView):
@@ -64,14 +64,46 @@ class SaveAIMealAPIView(APIView):
 @permission_classes([IsAuthenticated])
 def ai_meal_waste_profile(request):
     meal = request.data.get("meal", "")
-    context = request.data.get("context", "")
+    ingredients = request.data.get("ingredients", "")
 
-    if not isinstance(meal, str) or not meal.strip():
+    #normalize the meal
+    if meal in (None, ""):
+        meal_str = ""
+
+    elif isinstance(meal, str):
+        meal_str = meal.strip()
+    else:
         return Response({
-            "detail":"meal is required and must be a string"
+            "detail":"meal must be a string"
         }, status = status.HTTP_400_BAD_REQUEST)
+    
+    #normalize ingredients into list[str]
+    if ingredients in (None, ""):
+        ingredients_list = []
+    elif isinstance(ingredients, list):
+        ingredients_list = [str(i).strip() for i in ingredients if str(i).strip()]
+    elif isinstance(ingredients, str):
+        ingredients_list = [s.strip() for s in ingredients.split(",") if s.strip()]
+    else:
+        return Response({
+            "detail":"ingredients must be a list of strings OR a comma seperated string"
+        }, status= status.HTTP_400_BAD_REQUEST)
 
-    result = generate_waste_profile_with_cache(meal=meal, context=context)
+    if not meal_str and not ingredients_list:
+        return Response({
+            "detail": "provide the meal or ingredients or both!"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if not meal_str and ingredients_list:
+        meal_str = ", ". join(ingredients_list[:5])
+    ingredients_str = ", ".join(ingredients_list)
+    try:
+        result = generate_waste_profile_with_cache(meal = meal_str, ingredients = ingredients_str)
+    except Exception:
+        logging.getLogger(__name__).exception("ai_meal_waste_profile failed")
+        return Response({
+            "detail":"failed to generate waste"
+        }, status= status.HTTP_503_SERVICE_UNAVAILABLE)
 
     return Response(result, status.HTTP_200_OK)
 
