@@ -42,7 +42,7 @@ class SaveAIMealAPIView(APIView):
 
     def post(self, request):
         serializer = SaveAIMealSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True) 
 
         meal = Meal.objects.create(
             user=request.user,
@@ -63,7 +63,7 @@ class SaveAIMealAPIView(APIView):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ai_meal_waste_profile(request):
-    meal = request.data.get("meal", "")
+    meal = request.data.get("recipe", "")
     context = request.data.get("context", "")
 
     if not isinstance(meal, str) or not meal.strip():
@@ -74,31 +74,3 @@ def ai_meal_waste_profile(request):
     result = generate_waste_profile_with_cache(meal=meal, context=context)
 
     return Response(result, status.HTTP_200_OK)
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def foodcom_recipe_list(request):
-    qs = FoodComRecipe.objects.all().order_by("-id")
-    q = request.query_params.get("q") 
-    if q:
-        qs = qs.filter(title__icontains=q)
-    
-    ingredient = request.query_params.get("ingredient")
-    if ingredient:
-        qs.filter(ingredients__contains=[ingredient])
-
-    tag = request.query_params.get("tag")
-    if tag:
-        qs = qs.filter(tags__contains=[tag])  
-
-    serializer = FoodComRecipeSerializer(qs, many = True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def foodcom_recipe_detail(request, pk):
-    recipe = get_object_or_404(FoodComRecipe, pk = pk)
-    serializer = FoodComRecipeSerializer(recipe)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-
-

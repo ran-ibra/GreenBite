@@ -38,7 +38,6 @@ class MealDBRecipe(models.Model):
     title = models.CharField(max_length=255, db_index=True)
     category = models.CharField(max_length=100, blank=True, default="")
     cuisine = models.CharField(max_length=100, blank=True, default="")  # MealDB strArea
-
     instructions = models.TextField(blank=True, default="")
     thumbnail = models.URLField(blank=True, default="")
     tags = models.JSONField(default=list, blank=True)  # ["Pasta", "Curry", ...]

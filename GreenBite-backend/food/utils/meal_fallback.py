@@ -9,7 +9,7 @@ from food.utils.normalize import normalize_ingredient_name
 
 def fallback_meals_from_mealdb(
     ingredients: list[str],
-    top_k: int = 5,
+    top_k: int = 4,
     similarity_threshold: float = 0.60,
 ):
     """

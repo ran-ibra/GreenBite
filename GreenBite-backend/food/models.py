@@ -91,7 +91,7 @@ class Meal(models.Model):
     leftovers_saved = models.BooleanField(default=False) 
     leftovers = models.JSONField(null=True, blank=True)
     cuisine = models.CharField(max_length=100, null=True, blank=True)
-    photo = models.TextField(null=True, blank=True)
+    photo = models.URLField(null=True, blank=True)
     mealTime = models.CharField(
         max_length=20,
         choices=MealTime.choices
@@ -169,32 +169,3 @@ class FoodLogUsage(models.Model):
         ]
     def __str__(self):
         return f"FoodLogUsage(user={self.user_id}, recipe={self.recipe_id}, foodlog={self.foodlog_id}, used_quantity={self.used_quantity})"
-from django.contrib.postgres.indexes import GinIndex
-
-
-class FoodComRecipe(models.Model):
-    title = models.CharField(max_length=255, db_index=True)
-    description = models.TextField(blank=True, default="")
-    tags = models.JSONField(default=list, blank=True)
-    ingredients = models.JSONField(default=list, blank= True)
-    steps = models.JSONField(default=list, blank=True)
-
-    n_ingredients = models.PositiveIntegerField(null=True, blank=True)
-    n_steps = models.PositiveIntegerField(null=True, blank=True)
-
-    source = models.CharField(max_length=50, default="foodcom", blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__ (self):
-        return f"{self.title}"
-    
-    class Meta:
-        ordering = ["id"]
-        verbose_name = "food.com Recipe"
-        verbose_name_plural = "Food.com Recipes"
-
-        indexes = [ GinIndex(fields = ["ingredients"], name = "foodcom_ingredients_gin"),
-        GinIndex(fields=["tags"], name="foodcom_tags_gin") ]
-
