@@ -27,7 +27,7 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <div className="App">
+    <div className="App" data-theme="light">
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
         <BrowserRouter>
