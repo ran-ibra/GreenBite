@@ -236,17 +236,17 @@ def generate_waste_profile_openai(meal: str = "", ingredients: str = ""):
     )
 
   try:
-    response = client.chat.completions.create(
-      model= "gpt-4o-mini", 
-      messages = [
-          {"role": "system", "content": "Return JSON only. Do not include markdown."},
-          {"role": "user", "content": prompt},
-      ],
-      temperature=0.5,
-      max_tokens=900,
+    response = client.responses.create(
+      model= "gpt-4.1-mini", 
+      store = False,
+      input = [{"role": "user", "content": prompt}],
+      text = {"format":{"type": "json_object"}},
     )
 
-    content = (response.choices[0].message.content or "").strip()
+    content = (getattr(response, "output_text", None) or "").strip()
+    if not content:
+       raise ValueError("Empty model output")
+    
     data = json.loads(content)
 
     if not isinstance(data, dict):
