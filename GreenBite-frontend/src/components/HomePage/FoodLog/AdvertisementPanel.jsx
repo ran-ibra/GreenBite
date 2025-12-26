@@ -99,8 +99,8 @@ export default function AdvertisementPanel() {
   }, [slides.length]);
 
   return (
-    <div className="w-full max-w-[80vw] mx-auto mt-6 relative lg:px-8 sm:px-2">
-      <div className="h-[30vw] sm:h-[30vw] xl:h-[20vw] rounded-xl overflow-hidden relative">
+    <div className="w-full mt-6 mx-auto relative">
+      <div className="h-[30vw] sm:h-[30vw] xl:h-[20vw] rounded-xl overflow-hidden relative m-6">
         {slides.map((slide, index) => (
           <div
             key={index}
