@@ -144,9 +144,9 @@ export default function LoginForm() {
         {/* Forgot Password */}
         <div className="pt-1 lg:pt-2">
           <p className="text-red-500">{formError}</p>
-          <a href="#" className="text-red-500 hover:underline">
+          <Link to="/forgot-password" className="text-red-500 hover:underline flex justify-end">
             Forgot password
-          </a>
+          </Link>
         </div>
 
         {/* Submit Button */}
