@@ -9,12 +9,15 @@ import DashBoardPage from "./pages/HomePages/DashBoardHome";
 import HomeLayout from "./layouts/HomeLayout";
 import RegisterPage from "./pages/RegisterPage";
 import EmailVerification from "./pages/EmailVerification";
+import ForgotPassword from "./pages/ForgotPassword/RequestResetEmail";
+import ResetPassword from "./pages/ForgotPassword/ResetPassword";
 // import PrivateRoute from "./utils/PrivateRoute";
 import NotFound from "./pages/NotFound";
 import FoodLog from "./pages/HomePages/FoodLog/FoodLog";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import Activate from "./pages/Activate";
+import ResetSuccess from "./pages/ForgotPassword/ResetSuccess";
 
 
 const queryClient = new QueryClient({
@@ -39,10 +42,14 @@ function App() {
             {/* public routes user cant access after login */}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-success" element={<ResetSuccess />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/password/reset/confirm/:uid/:token" element={<ResetPassword />} />
             </Route>
             {/* ProtectedRoute user can access after login  */}
             <Route element={<ProtectedRoute />}>
+              
               <Route path="/home" element={<HomeLayout />}>
                 {/* /home */}
                 <Route index element={<DashBoardPage />} />
