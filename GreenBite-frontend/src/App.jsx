@@ -12,11 +12,11 @@ import EmailVerification from "./pages/EmailVerification";
 // import PrivateRoute from "./utils/PrivateRoute";
 import NotFound from "./pages/NotFound";
 import FoodLog from "./pages/HomePages/FoodLog/FoodLog";
-import FoodLogEdit from "./pages/HomePages/FoodLog/FoodLogEdit";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,7 +50,6 @@ function App() {
                 {/* /home/foodlog */}
                 <Route path="foodlog">
                   <Route index element={<FoodLog />} />
-                  <Route path="edit" element={<FoodLogEdit />} />
                 </Route>
                 {/* /home/wastelog */}
                 <Route path="wastelog">

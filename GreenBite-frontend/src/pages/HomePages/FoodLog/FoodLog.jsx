@@ -14,6 +14,8 @@ import FoodLogToolbar from "@/components/HomePage/FoodLog/FoodLogToolbar";
 import FoodLogTable from "@/components/HomePage/FoodLog/FoodLogTable";
 import FoodLogPagination from "@/components/HomePage/FoodLog/FoodLogPagination";
 import DeleteConfirmModal from "@/components/HomePage/FoodLog/DeleteConfirmModal";
+import AdvertisementPanel from "@/components/HomePage/FoodLog/AdvertisementPanel";
+import AddFoodDialog from "@/components/HomePage/FoodLog/AddFoodDialog";
 const FoodLog = () => {
   const [filters, setFilters] = useState({
     name: "",
@@ -71,6 +73,9 @@ const FoodLog = () => {
     deleteMutation.mutate(deleteItem.id);
   };
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+
   if (isLoading) {
     return <PacmanLoader color="#7EB685" size={40} speedMultiplier={1} />;
   }
@@ -80,24 +85,46 @@ const FoodLog = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden m-6 border border-[#00000010]">
-      <FoodLogToolbar filters={filters} setFilters={setFilters} />
+    <div>
+      <AdvertisementPanel />
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden m-6 border border-[#00000010]">
 
-      <FoodLogTable
-        items={data?.results || []}
-        sort={sort}
-        setSort={setSort}
-        setDeleteItem={setDeleteItem}
-      />
-      <DeleteConfirmModal
-        open={!!deleteItem}
-        item={deleteItem}
-        onClose={() => setDeleteItem(null)}
-        onConfirm={handleDeleteConfirm}
-        loading={deleteMutation.isLoading}
-      />
+        <FoodLogToolbar
+          filters={filters}
+          setFilters={setFilters}
+          onAddClick={() => {
+            setEditingItem(null);
+            setIsAddOpen(true);
+          }}
+        />
 
-      <FoodLogPagination count={data?.count} page={page} setPage={setPage} />
+        <FoodLogTable
+          items={data?.results || []}
+          sort={sort}
+          setSort={setSort}
+          setDeleteItem={setDeleteItem}
+          onEdit={(item) => {
+            setEditingItem(item);
+            setIsAddOpen(true);
+          }}
+        />
+
+        <AddFoodDialog
+          open={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          item={editingItem}
+        />
+
+        <DeleteConfirmModal
+          open={!!deleteItem}
+          item={deleteItem}
+          onClose={() => setDeleteItem(null)}
+          onConfirm={handleDeleteConfirm}
+          loading={deleteMutation.isLoading}
+        />
+
+        <FoodLogPagination count={data?.count} page={page} setPage={setPage} />
+      </div>
     </div>
   );
 };
