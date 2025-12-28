@@ -98,6 +98,7 @@ class Meal(models.Model):
     )
     
     consumed_at = models.DateTimeField(default=timezone.now)
+    # in helper function inherit from it the new 2 fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -140,7 +141,24 @@ class Meal(models.Model):
 class WasteLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="waste_logs")
     meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.SET_NULL, related_name="waste_logs")
-    items = models.JSONField(default=list, blank = True)   
+
+    name = models.CharField(max_length=100)
+    why = models.TextField( )
+
+    estimated_amount = models.DecimalField(
+        max_digits=8,
+        decimal_places=2
+    )
+    unit = models.CharField(max_length=20)
+
+    disposal = models.CharField(
+        max_length=50
+    )
+
+    reuse_ideas = models.JSONField(
+        default=list,
+        blank=True
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -169,3 +187,32 @@ class FoodLogUsage(models.Model):
         ]
     def __str__(self):
         return f"FoodLogUsage(user={self.user_id}, recipe={self.recipe_id}, foodlog={self.foodlog_id}, used_quantity={self.used_quantity})"
+from django.contrib.postgres.indexes import GinIndex
+
+
+# class FoodComRecipe(models.Model):
+#     title = models.CharField(max_length=255, db_index=True)
+#     description = models.TextField(blank=True, default="")
+#     tags = models.JSONField(default=list, blank=True)
+#     ingredients = models.JSONField(default=list, blank= True)
+#     steps = models.JSONField(default=list, blank=True)
+
+#     n_ingredients = models.PositiveIntegerField(null=True, blank=True)
+#     n_steps = models.PositiveIntegerField(null=True, blank=True)
+
+#     source = models.CharField(max_length=50, default="foodcom", blank=True)
+
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     def __str__ (self):
+#         return f"{self.title}"
+    
+#     class Meta:
+#         ordering = ["id"]
+#         verbose_name = "food.com Recipe"
+#         verbose_name_plural = "Food.com Recipes"
+
+#         indexes = [ GinIndex(fields = ["ingredients"], name = "foodcom_ingredients_gin"),
+#         GinIndex(fields=["tags"], name="foodcom_tags_gin") ]
+

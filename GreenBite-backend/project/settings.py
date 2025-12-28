@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "django.contrib.postgres",
+    "django.contrib.sites",
+
 
     # Third-party
     'rest_framework', 
@@ -68,7 +70,7 @@ INSTALLED_APPS = [
     "recipes",
     "meal_plans",
 ]
-
+SITE_ID = 1
 # -------------------------------------------------
 # REST Framework
 # -------------------------------------------------
@@ -105,30 +107,26 @@ SIMPLE_JWT = {
 # -------------------------------------------------
 
 DJOSER = {
-    "LOGIN_FIELD": "email",  
-    "USER_CREATE_PASSWORD_RETYPE": True,
-    "PASSWORD_RESET_CONFIRM_RETYPE": True,
-    "USER_DELETE_PASSWORD_CONFIRM": True,
-    "TOKEN_MODEL": None,
-    
-    "PASSWORD_RESET_CONFIRM_URL":"password/reset/confirm/{uid}/{token}/",
+    "LOGIN_FIELD": "email", 
+    "SEND_ACTIVATION_EMAIL": True, 
+    "USER_CREATE_PASSWORD_RETYPE": True, 
+    "PASSWORD_RESET_CONFIRM_RETYPE": True, 
+    "USER_DELETE_PASSWORD_CONFIRM": True, 
+    "TOKEN_MODEL": None, 
+    "PASSWORD_RESET_CONFIRM_URL":"password/reset/confirm/{uid}/{token}/", 
+    "ACTIVATION_URL": "activate/{uid}/{token}/", 
 
+    "PERMISSIONS": {
+        "resend_activation": ["rest_framework.permissions.AllowAny"],
+    },
+    
     "SERIALIZERS": {
         "user_create": "accounts.serializers.UserCreateSerializer",
         "user_create_password_retype": "accounts.serializers.UserCreateSerializer",
-        
     },
-}
-
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'Bearer': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header',
-            'description': 'Use: Bearer <your_access_token>',
-        }
-    },
+    # "EMAIL": {
+    #     "activation": "accounts.email.CustomActivationEmail",
+    # },
 }
 
 EMAIL_HOST = "smtp.gmail.com"
@@ -143,8 +141,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     "corsheaders.middleware.CorsMiddleware",
+    'django.middleware.security.SecurityMiddleware',   
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -157,14 +155,15 @@ ROOT_URLCONF = 'project.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },

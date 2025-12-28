@@ -1,5 +1,5 @@
 from django.urls import path
-from food.views import foodlogsysviews, mealsGenViews, wasteLogviews
+from food.views import foodlogsysviews, mealsGenViews, wasteLogviews , meals_operation, imageProcessing
 
 
 app_name = 'food'
@@ -18,10 +18,15 @@ urlpatterns = [
     path("meals/generate/", mealsGenViews.GenerateMealsAPIView.as_view()),
     path("meals/save-ai/", mealsGenViews.SaveAIMealAPIView.as_view()),
     path("meals/waste/", mealsGenViews.ai_meal_waste_profile),
+    path("meals/", meals_operation.UserMealListAPIView.as_view()),
+    path("meals/<int:pk>/", meals_operation.MealDetailAPIView.as_view()),
+    path("meals/<int:pk>/delete/", meals_operation.DeleteMealAPIView.as_view()),
+    path("meals/<int:pk>/save-leftovers/", meals_operation.SaveMealLeftoversAPIView.as_view()),
     # path("foodcomrecipes/", views.foodcom_recipe_list, name='foodcom-recipe-list'),
     # path("foodcomrecipes/<int:pk>/", views.foodcom_recipe_detail),
     path("waste-log/", wasteLogviews.waste_log_list_create, name="waste-log-list-create"),
-    path("waste-log/<int:pk>/", wasteLogviews.waste_log_detail, name="waste-log-detail")
+    path("waste-log/<int:pk>/", wasteLogviews.waste_log_detail, name="waste-log-detail"),
     # path("mealdb/random/", views.mealdb_random),
-    # path("mealdb/<str:mealdb_id>/", views.mealdb_detail)
+    # path("mealdb/<str:mealdb_id>/", views.mealdb_detail),
+    path("food-safety/scan/", imageProcessing.food_safety_scan, name = "food-safety-scan")
 ]

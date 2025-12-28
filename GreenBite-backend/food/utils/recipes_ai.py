@@ -6,7 +6,7 @@ import os
 import logging
 from django.conf import settings
 from django.core.cache import cache
-from .prompts import waste_prompt, recipe_prompt
+from .prompts import waste_prompt, recipe_prompt, waste_ingredients_only_prompt
 
 try:
     from openai import OpenAI
@@ -22,7 +22,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-
+#  reform the logic to be a oop  contains 
 def get_openai_client():
     if not OPENAI_AVAILABLE:
         logger.warning("OpenAI SDK not installed (OPENAI_AVAILABLE=False).")
@@ -123,14 +123,13 @@ def generate_meals_openai(ingredients):
             description = (m.get("description") or "").strip()
             ingredients_list = m.get("ingredients") or []
             steps = m.get("steps") or m.get("instructions") or []
-            waste_items = m.get("waste_items") or m.get("waste") or []
 
             if not isinstance(ingredients_list, list):
                 ingredients_list = []
             if not isinstance(steps, list):
                 steps = []
-            if not isinstance(waste_items, list):
-                waste_items = []
+            # if not isinstance(waste_items, list):
+            #     waste_items = []
 
             normalized.append(
                 {
@@ -143,7 +142,6 @@ def generate_meals_openai(ingredients):
                     "difficulty": (m.get("difficulty") or "easy"),
                     "cuisine": (m.get("cuisine") or ""),
                     "mealTime": (m.get("meal_time") or m.get("mealTime") or "lunch"),
-                    "waste_items": waste_items,
                     "source": "openai",
                 }
             )
@@ -182,7 +180,6 @@ def mealdb_recipe_to_ai_shape(meal: MealDBRecipe):
         "difficulty": meal.difficulty or "easy",
         "cuisine": meal.cuisine or "",
         "mealTime": (meal.meal_time or "lunch"),
-        "waste_items": [],
         "source": "mealdb_fallback",
     }
 
@@ -209,7 +206,6 @@ def generate_recipes_with_cache(ingredients):
             "steps": m.instructions.split("\n"),
             "mealTime": "lunch",
             "difficulty": "easy",
-            "waste_items": []
         }
         for m in meals
     ]
@@ -218,42 +214,54 @@ def generate_recipes_with_cache(ingredients):
     return serialized
 
 
-
 #returns a dict of meal, waste_items, general_tips
-def generate_waste_profile_openai(meal: str, context: str = ""):
+def generate_waste_profile_openai(meal: str = "", ingredients: str = ""):
   client = get_openai_client()
   if not client:
     return {"meal": meal, "waste_items": [], "general_tips":[]}
   meal_clean = (meal or "").strip()[:120]
-  context_clean = (context or "").strip()[:500]
+  ingredients_clean = (ingredients or "").strip()[:500]
 
-  prompt_template = waste_prompt(meal_clean, context_clean)
-  prompt = (
-    prompt_template
-    .replace("{meal}", meal_clean)
-    .replace("{context}", context_clean)
-  )
+  ingredients_only_mode = (not meal_clean) and bool(ingredients_clean)
+  if ingredients_only_mode:
+    prompt = waste_ingredients_only_prompt(ingredients_clean)
 
-  try:
-    response = client.chat.completions.create(
-      model= "gpt-4o-mini", 
-      messages = [
-          {"role": "system", "content": "Return JSON only. Do not include markdown."},
-          {"role": "user", "content": prompt},
-      ],
-      temperature=0.5,
-      max_tokens=650,
+  else:  
+    prompt_template = waste_prompt(meal_clean, ingredients_clean)
+    prompt = (
+        prompt_template
+        .replace("{meal}", meal_clean)
+        .replace("{ingredients}", ingredients_clean)
     )
 
-    content = (response.choices[0].message.content or "").strip()
+  try:
+    response = client.responses.create(
+      model= "gpt-4.1-mini", 
+      store = False,
+      input = [{"role": "user", "content": prompt}],
+      text = {"format":{"type": "json_object"}},
+    )
+
+    content = (getattr(response, "output_text", None) or "").strip()
+    if not content:
+       raise ValueError("Empty model output")
+    
     data = json.loads(content)
 
     if not isinstance(data, dict):
+      if ingredients_only_mode:
+        return {"meal": "", "ingredients_waste":[], "general_tips": []}
       return {"meal": meal_clean, "waste_items": [], "general_tips":[]}
     
-    if "meal" not in data:
-      data["meal"] = meal_clean
-
+    if ingredients_only_mode:
+       data.setdefault("meal", "")
+       if "ingredients_waste" not in data or not isinstance(data["ingredients_waste"],list):
+          data["ingredients_waste"] = []
+       if "general_tips" not in data or not isinstance(data["general_tips"], list):
+          data["general_tips"] = []
+       return data
+    
+    data.setdefault("meal", meal_clean)
     if "waste_items" not in data or not isinstance(data["waste_items"], list):
       data["waste_items"] = []
 
@@ -263,20 +271,22 @@ def generate_waste_profile_openai(meal: str, context: str = ""):
     return data
   
   except (json.JSONDecodeError, Exception):
-    return {"meal": meal_clean, "waste_items":[], "general_tips": []}
+    if ingredients_only_mode:
+       return {"meal" : "" ,"ingredients_waste": [], "general_tips": []}
+    return {"meal": meal_clean, "waste_items": [], "general_tips": []}
 
 #cache result for 24 hrs
-def generate_waste_profile_with_cache(meal: str, context: str = ""):
+def generate_waste_profile_with_cache(meal: str, ingredients: str = ""):
   meal_key = (meal or "").strip().lower()
-  context_key = (context or "").strip().lower()
+  ingredients_key = (ingredients or "") #.strip().lower()
 
-  key = "meal_waste:" + meal_key[:80] + ":" + context_key[:80]
+  key = "meal_waste:" + meal_key[:80] + ":" + ingredients_key[:80]
 
   cached = cache.get(key)
   if cached:
     return cached
   
-  data = generate_waste_profile_openai(meal=meal, context=context)
+  data = generate_waste_profile_openai(meal=meal, ingredients=ingredients)
   cache.set(key, data, timeout=86400) #1 day
   return data
 

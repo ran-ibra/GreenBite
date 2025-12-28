@@ -12,15 +12,7 @@ Rules:
 - Do not add extra ingredients except salt, oil, water, spices, pepper.
 - Keep steps short
 - Do not include calories
-- Do not include waste
 - No explanations
-- Do NOT skip waste if it exists.
-- ONLY include waste that comes directly from the listed ingredients.
-- If and ONLY IF no ingredient has inedible parts, return [].
-- Each waste item MUST have:
-- name: name of the waste item (e.g., "banana peel")
-- reason: why it's waste (e.g., "inedible part only")
-- disposal: one of [compost, trash, recycle]
 
 JSON format:
 
@@ -39,31 +31,22 @@ JSON format:
     "difficulty": "easy|medium|hard",
     "cuisine": "string",
     "mealTime": "breakfast|lunch|dinner|snack|brunch",
-    "waste_items": [
-      {{
-        "name": "string",
-        "reason": "inedible part only",
-        "disposal": "compost|trash|recycle"
-      }}
-    ]
     }}
   ]
 }}
 """
 
 
-
-
-def waste_prompt(meal, context):
+def waste_prompt(meal, ingredients):
     return """You are a sustainability & kitchen-waste expert.
 
     TASK:
-    Given a meal name (and optional context), predict the MOST LIKELY kitchen waste generated while preparing/eating it.
+    Given a meal name or ingredients, predict the MOST LIKELY kitchen waste generated while preparing/eating it.
     Then suggest practical reuse ideas for each waste item.
 
     INPUT:
     - meal: {meal}
-    - context: {context}
+    - ingredients: {ingredients}
 
     RULES:
     - Return JSON only (no text, no markdown)
@@ -90,3 +73,39 @@ def waste_prompt(meal, context):
     ],
     "general_tips": ["string", "..."]
     }}"""
+
+def waste_ingredients_only_prompt(ingredients_clean):
+    return """Return ONLY valid JSON. No markdown.
+
+We have ingredients only (no meal name).
+Ingredients: {ingredients_clean}
+
+Return EXACTLY this JSON shape:
+{
+  "meal": "",
+  "ingredients_waste": [
+    {
+      "ingredient": "string (must match one ingredient from the input)",
+      "waste_items": [
+        {
+          "name": "string",
+          "why": "string",
+          "estimated_amount": 0,
+          "unit": "g",
+          "disposal": "compost|trash|recycle|other",
+          "reuse_ideas": ["string"]
+        }
+      ],
+      "storage_tips": ["string"],
+      "use_soon_ideas": ["string"]
+    }
+  ],
+  "general_tips": ["string"]
+}
+
+Rules:
+- ingredients_waste MUST include one entry per ingredient in the input (if recognizable).
+- Each entry's 'ingredient' must be exactly the ingredient name (e.g., 'banana', not 'banana peels').
+- Put peel/core waste inside that ingredient’s waste_items.
+- meal must be an empty string.
+    """
