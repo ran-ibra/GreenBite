@@ -18,7 +18,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
-// ✅ NEW: Import Meal Plan pages
+import GenerateRecipesPage from "./pages/HomePages/Recipes/GenerateRecipesPage";
 import MealPlansListPage from "./pages/HomePages/MealPlan/MealPlansListPage";
 import MealPlanPage from "./pages/HomePages/MealPlan/MealPlanPage";
 
@@ -63,7 +63,11 @@ function App() {
                 <Route path="wastelog">
                   <Route index element={<WasteLog />} />
                 </Route>
-                
+
+                <Route path="recipes">
+                  <Route index element={<GenerateRecipesPage />} />
+                </Route>
+
                 <Route path="mealplans">
                   <Route index element={<MealPlansListPage />} />
                   <Route path=":id" element={<MealPlanPage />} />
