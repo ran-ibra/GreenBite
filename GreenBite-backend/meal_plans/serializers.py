@@ -15,10 +15,26 @@ class MealPlanMealNestedSerializer(serializers.ModelSerializer):
     recipe = serializers.CharField(source="meal.recipe", read_only=True)
     photo = serializers.SerializerMethodField()
     planned_usages = MealPlanFoodUsageNestedSerializer(many=True, read_only=True)
+    is_replaced = serializers.BooleanField(read_only=True)
+    replaced_at = serializers.DateTimeField(read_only=True)
+    original_recipe = serializers.CharField(
+        source="original_meal.recipe", read_only=True, allow_null=True
+    )
 
     class Meta:
         model = MealPlanMeal
-        fields = ["id", "meal_time", "is_skipped", "meal", "recipe", "photo", "planned_usages"]
+        fields = [
+            "id",
+            "meal_time",
+            "is_skipped",
+            "meal",
+            "recipe",
+            "photo",
+            "planned_usages",
+            "is_replaced",
+            "replaced_at",
+            "original_recipe",
+        ]
 
     def get_photo(self, obj):
         meal = getattr(obj, "meal", None)

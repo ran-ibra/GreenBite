@@ -1,19 +1,22 @@
-from multiprocessing import context
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 from meal_plans.services.meal_plan_generator import generate_meal_plan
 from meal_plans.services.confirmeal import confirm_meal_plan_day
-from .models import  MealPlanMeal, MealPlanDay
+from meal_plans.services.meal_replacement import replace_meal
+from .models import MealPlanMeal, MealPlanDay, MealPlan
 from .services.meal_planning_service import MealPlanningService
 from .services.inventory import InventoryService
 from .services.recipeProvider import MealDBRecipeProvider, AIRecipeProvider
 from .tasks import async_generate_meal_plan
+from .serializers import MealPlanDetailSerializer
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class MealPlanGeneratorView(APIView):
     permission_classes = [IsAuthenticated]
@@ -21,8 +24,15 @@ class MealPlanGeneratorView(APIView):
     def post(self, request):
         days = int(request.data.get("days", 3))
         meals_per_day = int(request.data.get("meals_per_day", 3))
+        
+        if days < 1 or days > 30:
+            return Response({"error": "Days must be between 1 and 30"}, status=400)
+        
+        if meals_per_day < 1 or meals_per_day > 4:
+            return Response({"error": "Meals per day must be between 1 and 4"}, status=400)
+        
         use_ai = request.data.get("use_ai_fallback", True)
-        async_mode = request.data.get("async", False)  # Optional async generation
+        async_mode = request.data.get("async", False)
 
         start_date_raw = request.data.get("start_date")
         if start_date_raw:
@@ -34,7 +44,6 @@ class MealPlanGeneratorView(APIView):
 
         try:
             if async_mode:
-                # Queue task for background processing
                 task = async_generate_meal_plan.delay(
                     request.user.id,
                     start_date.strftime("%Y-%m-%d"),
@@ -48,7 +57,6 @@ class MealPlanGeneratorView(APIView):
                     "message": "Meal plan generation started in background"
                 }, status=202)
             
-            # Synchronous generation
             inventory = InventoryService(request.user)
             providers = [MealDBRecipeProvider(inventory)]
 
@@ -65,9 +73,6 @@ class MealPlanGeneratorView(APIView):
             
             meal_plan = service.generate()
             
-            # Serialize response (use your existing serializers)
-            # ... return meal plan data ...
-            
             return Response({
                 "meal_plan_id": meal_plan.id,
                 "days": days,
@@ -80,8 +85,7 @@ class MealPlanGeneratorView(APIView):
         except Exception as e:
             logger.exception(f"Meal plan generation failed: {e}")
             return Response({"error": "Internal server error"}, status=500)
-from meal_plans.models import MealPlan
-from .serializers import MealPlanDetailSerializer
+
 
 class MealPlanDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -91,6 +95,7 @@ class MealPlanDetailAPIView(APIView):
             plan = MealPlan.objects.prefetch_related(
                 "days_plan__meals__meal",
                 "days_plan__meals__planned_usages__food_log",
+                "days_plan__meals__original_meal",  # ✅ Include original meal
             ).get(id=pk, user=request.user)
         except MealPlan.DoesNotExist:
             return Response({"error": "Meal plan not found"}, status=404)
@@ -99,26 +104,121 @@ class MealPlanDetailAPIView(APIView):
         return Response(serializer.data)
 
 
+class MealPlanConfirmAPIView(APIView):
+    """✅ NEW: Confirm entire meal plan"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            plan = MealPlan.objects.prefetch_related("days_plan").get(
+                id=pk, 
+                user=request.user
+            )
+        except MealPlan.DoesNotExist:
+            return Response({"error": "Meal plan not found"}, status=404)
+
+        if plan.is_confirmed:
+            return Response({"error": "Meal plan already confirmed"}, status=400)
+
+        # Confirm all unconfirmed days
+        unconfirmed_days = plan.days_plan.filter(is_confirmed=False)
+        
+        confirmed_count = 0
+        errors = []
+        
+        for day in unconfirmed_days:
+            try:
+                confirm_meal_plan_day(day, request.user)
+                confirmed_count += 1
+            except ValueError as e:
+                errors.append(f"Day {day.date}: {str(e)}")
+                logger.warning(f"Failed to confirm day {day.date}: {e}")
+            
+            except Exception as e:
+                errors.append(f"Day {day.date}: {str(e)}")
+                logger.exception(f"Failed to confirm day {day.date}: {e}")
+
+        remaining_unconfirmed = plan.days_plan.filter(is_confirmed=False).count()
+        
+        if remaining_unconfirmed == 0:
+            plan.is_confirmed = True
+            plan.save(update_fields=["is_confirmed"])
+            logger.info(f" Meal plan {plan.id} fully confirmed")
+
+        return Response({
+            "status": "completed",
+            "message": f"Confirmed {confirmed_count} day(s)",
+            "errors": errors if errors else None,
+            "plan_fully_confirmed": plan.is_confirmed,
+            "remaining_days": remaining_unconfirmed
+        }, status=status.HTTP_200_OK)
+
+
 class MealPlanDayConfirmAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         try:
-            day = MealPlanDay.objects.select_related(
-                "meal_plan"
-            ).get(
+            # ✅ Fetch the day with proper error handling
+            day = MealPlanDay.objects.select_related("meal_plan").get(
                 id=pk,
                 meal_plan__user=request.user
             )
         except MealPlanDay.DoesNotExist:
-            return Response({"error": "Day not found"}, status=404)
+            return Response(
+                {"error": "Day not found or you don't have permission"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         try:
-            confirm_meal_plan_day(day, request.user)
+            # Pass the day object (not ID) to the service
+            confirmed_day = confirm_meal_plan_day(day, request.user)
+            
+            return Response({
+                "status": "confirmed",
+                "day_id": confirmed_day.id,
+                "date": confirmed_day.date,
+                "confirmed_at": confirmed_day.confirmed_at,
+                "message": "Day confirmed successfully"
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Day confirmation failed: {e}")
+            return Response(
+                {"error": "Internal server error"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class MealPlanMealReplaceAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        use_ai = request.data.get("use_ai_fallback", True)
+        
+        try:
+            updated_meal = replace_meal(pk, request.user, use_ai=use_ai)
+            
+            return Response({
+                "status": "replaced",
+                "meal_id": updated_meal.id,
+                "new_recipe": updated_meal.meal.recipe if updated_meal.meal else None,
+                "original_recipe": updated_meal.original_meal.recipe if updated_meal.original_meal else None,
+                "message": "Meal replaced successfully"
+            })
+            
         except ValueError as e:
             return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            logger.exception(f"Meal replacement failed: {e}")
+            return Response({"error": "Internal server error"}, status=500)
 
-        return Response({"status": "Day confirmed"})
+
 class MealPlanMealSkipAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -135,6 +235,8 @@ class MealPlanMealSkipAPIView(APIView):
         meal.save(update_fields=["is_skipped"])
 
         return Response({"status": "Meal skipped"})
+
+
 class MealPlanDeleteAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -145,10 +247,38 @@ class MealPlanDeleteAPIView(APIView):
             return Response({"error": "Meal plan not found"}, status=404)
 
         if plan.is_confirmed:
-            return Response(
-                {"error": "Cannot delete confirmed plan"},
-                status=400
-            )
+            return Response({"error": "Cannot delete confirmed plan"}, status=400)
 
         plan.delete()
         return Response(status=204)
+class MealPlanListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        plans = MealPlan.objects.filter(user=request.user).order_by('-created_at')
+        
+        # Simple serialization (without nested data for list view)
+        data = [
+            {
+                "id": plan.id,
+                "start_date": plan.start_date,
+                "days": plan.days,
+                "is_confirmed": plan.is_confirmed,
+                "created_at": plan.created_at,
+                "days_plan": [
+                    {
+                        "id": day.id,
+                        "date": day.date,
+                        "is_confirmed": day.is_confirmed,
+                        "meals": [
+                            {"id": meal.id, "meal_time": meal.meal_time}
+                            for meal in day.meals.all()
+                        ]
+                    }
+                    for day in plan.days_plan.all()
+                ]
+            }
+            for plan in plans
+        ]
+        
+        return Response(data)

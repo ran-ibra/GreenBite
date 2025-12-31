@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 from .inventory import InventoryService
 from abc import ABC, abstractmethod
@@ -173,22 +172,21 @@ class CompositeRecipeProvider(RecipeProvider):
 
     def find_recipes(self, limit: int = 30) -> List[RecipeCandidate]:
         all_recipes = []
+        
         logger.info(f"Composite: Fetching recipes from MealDB (limit={limit})")
         mealdb_recipes = self.mealdb_provider.find_recipes(limit=limit)
         all_recipes.extend(mealdb_recipes)
+        
         logger.info(f"Composite: Got {len(mealdb_recipes)} recipes from MealDB")
+        
         if len(all_recipes) < limit and self.ai_provider:
-            remaining = limit - len(all_recipes)
+            remaining = min(limit - len(all_recipes), 50)  
             logger.info(f"Composite: Fetching recipes from AI (limit={remaining})")
             ai_recipes = self.ai_provider.find_recipes(limit=remaining)
             all_recipes.extend(ai_recipes)
             logger.info(f"Composite: Got {len(ai_recipes)} recipes from AI")
 
-        all_recipes.sort(key=lambda r: r.score, reverse=True)
-        
-        logger.info(f"Composite: Got {len(all_recipes)} total recipes")
-
-        # Deduplicate by title + source
+        # Deduplicate
         unique_recipes = {}
         for recipe in all_recipes:
             key = (recipe.title.lower(), recipe.source)
@@ -196,4 +194,39 @@ class CompositeRecipeProvider(RecipeProvider):
                 unique_recipes[key] = recipe
 
         sorted_recipes = sorted(unique_recipes.values(), key=lambda r: r.score, reverse=True)
+        
+        # ✅ If still not enough, cycle through existing recipes
+        if len(sorted_recipes) < limit and sorted_recipes:
+            logger.info(
+                f"Composite: Only found {len(sorted_recipes)} unique recipes, "
+                f"need {limit}. Will cycle/repeat recipes."
+            )
+            
+            # Repeat recipes to fill the gap
+            base_count = len(sorted_recipes)
+            while len(sorted_recipes) < limit:
+                # Copy recipes (with slightly lower score to indicate they're repeats)
+                for original in sorted_recipes[:base_count]:
+                    if len(sorted_recipes) >= limit:
+                        break
+                    
+                    # Create a copy with adjusted score
+                    repeat = RecipeCandidate(
+                        title=original.title,
+                        ingredients=original.ingredients,
+                        source=original.source,
+                        thumbnail=original.thumbnail,
+                        instructions=original.instructions,
+                        ingredient_tokens=original.ingredient_tokens,
+                        metadata=original.metadata.copy()
+                    )
+                    repeat.score = original.score * 0.9  
+                    repeat.metadata['is_repeat'] = True
+                    sorted_recipes.append(repeat)
+        
+        logger.info(
+            f"Composite: Returning {len(sorted_recipes[:limit])} recipes "
+            f"(unique: {base_count if 'base_count' in locals() else len(sorted_recipes)})"
+        )
+        
         return sorted_recipes[:limit]

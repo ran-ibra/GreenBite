@@ -8,20 +8,29 @@ import logo from "@/assets/images/Logos/Verticallogo.png";
 import logo2 from "@/assets/images/Logos/pac man (1).png";
 
 // icons
-import { FaHome } from "react-icons/fa";
+import { FaHome, FaCalendarAlt } from "react-icons/fa";
 import { GiHotMeal } from "react-icons/gi";
 import { MdOutlineFoodBank } from "react-icons/md";
 
 const SideMenu = () => {
   return (
-    <div className="h-full w-full flex flex-col justify-between  border-r border-gray-200">
-      <aside className=" bg-white h-full">
-        <div className="p-2 font-bold text-xl ">
+    <div className="h-full w-full flex flex-col justify-between border-r border-gray-200">
+      <aside className="bg-white h-full">
+        <div className="p-2 font-bold text-xl">
           <Link to="/">
-            <img src={logo} className="hidden md:hidden lg:block" />
-            <img src={logo2} className="hidden md:block lg:hidden" />
+            <img
+              src={logo}
+              className="hidden md:hidden lg:block"
+              alt="GreenBite"
+            />
+            <img
+              src={logo2}
+              className="hidden md:block lg:hidden"
+              alt="GreenBite"
+            />
           </Link>
         </div>
+
         <nav className="">
           <NavLink
             to="/home"
@@ -83,11 +92,26 @@ const SideMenu = () => {
               Ai Recipes
             </span>
           </NavLink>
+
+          <NavLink
+            to="/home/mealplans"
+            className={({ isActive }) =>
+              `flex items-center justify-center px-4 py-2 rounded ${
+                isActive
+                  ? "bg-[#7eb685] rounded-l-full ml-1 text-white"
+                  : "text-gray-700 rounded-l-full ml-1 hover:bg-gray-100"
+              }`
+            }
+          >
+            <FaCalendarAlt />
+            <span className="text-[14px] ml-2.5 hidden lg:inline">
+              Meal Plans
+            </span>
+          </NavLink>
         </nav>
       </aside>
-      <div>
-        <LogOutBtn />
-      </div>
+
+      <LogOutBtn />
     </div>
   );
 };

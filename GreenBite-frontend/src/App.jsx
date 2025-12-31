@@ -12,14 +12,15 @@ import EmailVerification from "./pages/EmailVerification";
 import ForgotPassword from "./pages/ForgotPassword/RequestResetEmail";
 import ResetPassword from "./pages/ForgotPassword/ResetPassword";
 import ResetSuccess from "./pages/ForgotPassword/ResetSuccess";
-// import PrivateRoute from "./utils/PrivateRoute";
 import NotFound from "./pages/NotFound";
 import FoodLog from "./pages/HomePages/FoodLog/FoodLog";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
-
+// ✅ NEW: Import Meal Plan pages
+import MealPlansListPage from "./pages/HomePages/MealPlan/MealPlansListPage";
+import MealPlanPage from "./pages/HomePages/MealPlan/MealPlanPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,31 +40,37 @@ function App() {
             <Route path="/" element={<LandingPage />} exact />
             <Route path="/verify" element={<EmailVerification />} />
             <Route path="/activate/:uid/:token" element={<Activate />} />
-            {/* public routes user cant access after login */}
+            
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-success" element={<ResetSuccess />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/password/reset/confirm/:uid/:token" element={<ResetPassword />} />
+              <Route
+                path="/password/reset/confirm/:uid/:token"
+                element={<ResetPassword />}
+              />
             </Route>
-            {/* ProtectedRoute user can access after login  */}
+            
             <Route element={<ProtectedRoute />}>
-              
               <Route path="/home" element={<HomeLayout />}>
-                {/* /home */}
                 <Route index element={<DashBoardPage />} />
-
-                {/* /home/foodlog */}
+                
                 <Route path="foodlog">
                   <Route index element={<FoodLog />} />
                 </Route>
-                {/* /home/wastelog */}
+                
                 <Route path="wastelog">
                   <Route index element={<WasteLog />} />
                 </Route>
+                
+                <Route path="mealplans">
+                  <Route index element={<MealPlansListPage />} />
+                  <Route path=":id" element={<MealPlanPage />} />
+                </Route>
               </Route>
             </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
