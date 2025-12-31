@@ -89,8 +89,14 @@ def food_log_detail(request, pk):
     
     if request.method == 'GET':
         # Retrieve a specific food log
-        serializer = FoodLogSysSerializer(food_log)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        ck = detail_key(NAMESPACE, request.user.id, pk)
+        cached = cache.get(ck)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+        
+        data = FoodLogSysSerializer(food_log).data
+        cache.set(ck, data, timeout= 60*60*24) 
+        return Response(data, status=status.HTTP_200_OK)
     
     elif request.method in ['PUT', 'PATCH']:
         # Update a food log (PUT for full update, PATCH for partial update)
@@ -98,12 +104,18 @@ def food_log_detail(request, pk):
         serializer = FoodLogSysSerializer(food_log, data=request.data, partial=partial)
         if serializer.is_valid():
             serializer.save()
+
+            cache.delete(detail_key(NAMESPACE, request.user.id, pk))
+            bump_list_version(NAMESPACE, request.user.id)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
         # Delete a food log
         food_log.delete()
+        
+        cache.delete(detail_key(NAMESPACE, request.user.id, pk))
+        bump_list_version(NAMESPACE, request.user.id)
         return Response(
             {'message': 'Food log deleted successfully'}, 
             status=status.HTTP_204_NO_CONTENT
