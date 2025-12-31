@@ -30,4 +30,8 @@ def list_key(namespace:str, user_id:int, full_path: str) -> str:
     digest = _hash_key(full_path)
     return f"{namespace}:list:{user_id}:v{version}:{digest}"
 
-
+#only related to meals_operations
+def invalidate_meals(namespace, user_id: int, meal_id:int | None=None) -> None:
+    bump_list_version(namespace, user_id)
+    if meal_id is not None:
+        cache.delete(detail_key(namespace, user_id, meal_id))
