@@ -19,6 +19,7 @@ import PublicRoute from "./routes/PublicRoute";
 import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
 import GenerateRecipesPage from "./pages/HomePages/Recipes/GenerateRecipesPage";
+import MyMealsPage from "./pages/HomePages/Meals/MyMealsPage";
 import MealPlansListPage from "./pages/HomePages/MealPlan/MealPlansListPage";
 import MealPlanPage from "./pages/HomePages/MealPlan/MealPlanPage";
 
@@ -54,8 +55,10 @@ function App() {
             
             <Route element={<ProtectedRoute />}>
               <Route path="/home" element={<HomeLayout />}>
-                <Route index element={<DashBoardPage />} />
-                
+                {/* /home */}
+                <Route index element={<MyMealsPage />} />
+
+                {/* /home/foodlog */}
                 <Route path="foodlog">
                   <Route index element={<FoodLog />} />
                 </Route>
@@ -66,6 +69,9 @@ function App() {
 
                 <Route path="recipes">
                   <Route index element={<GenerateRecipesPage />} />
+                </Route>
+                <Route path="mymeals">
+                  <Route index element={<MyMealsPage />} />
                 </Route>
 
                 <Route path="mealplans">

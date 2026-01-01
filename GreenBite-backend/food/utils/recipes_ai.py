@@ -142,6 +142,7 @@ def generate_meals_openai(ingredients):
                     "difficulty": (m.get("difficulty") or "easy"),
                     "cuisine": (m.get("cuisine") or ""),
                     "mealTime": (m.get("meal_time") or m.get("mealTime") or "lunch"),
+                    "calories": int(m.get("calories") or 0),
                     "source": "openai",
                 }
             )
