@@ -24,7 +24,7 @@ const WasteLog = () => {
     ordering: "",
   });
 
-  const { data, isLoading } = useWasteLog({
+  const { data, isLoading, isError, error } = useWasteLog({
     page,
     filters,
   });
@@ -60,7 +60,6 @@ const WasteLog = () => {
   };
 
   if (isLoading) return <PacmanLoader />;
-  
 
   // ✅ handle backend error
   if (isError || !data) {
@@ -76,7 +75,6 @@ const WasteLog = () => {
     );
   }
   const { results = [], count = 0 } = data;
-
 
   return (
     <div className=" m-4 mt-4 capitalize">
