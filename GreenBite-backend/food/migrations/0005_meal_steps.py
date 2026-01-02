@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('food', '0004_rename_items_wastelog_reuse_ideas_wastelog_disposal_and_more'),
+        ('food', '0001_initial'),
     ]
 
     operations = [
