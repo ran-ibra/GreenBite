@@ -60,11 +60,28 @@ const WasteLog = () => {
   };
 
   if (isLoading) return <PacmanLoader />;
+  
+
+  // ✅ handle backend error
+  if (isError || !data) {
+    return (
+      <div className="p-4 text-red-600 text-sm">
+        Failed to load waste log.
+        {error?.response?.data?.detail && (
+          <div className="mt-1 text-xs text-gray-600">
+            {String(error.response.data.detail)}
+          </div>
+        )}
+      </div>
+    );
+  }
+  const { results = [], count = 0 } = data;
+
 
   return (
     <div className=" m-4 mt-4 capitalize">
       <WasteLogTable
-        data={data.results}
+        data={results}
         filters={filters}
         setFilters={setFilters}
         onAdd={openAdd}
@@ -72,7 +89,7 @@ const WasteLog = () => {
         onDelete={(id) => deleteMutation.mutate(id)}
       />
 
-      <WasteLogPagination page={page} setPage={setPage} count={data.count} />
+      <WasteLogPagination page={page} setPage={setPage} count={count} />
 
       <WasteLogModal
         key={editingItem?.id || "new"}

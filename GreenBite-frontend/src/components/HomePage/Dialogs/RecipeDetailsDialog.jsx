@@ -4,6 +4,7 @@ import { Clock, Utensils } from "lucide-react";
 import { saveMeal } from "@/api/recipes.api";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { normalizeIngredients } from "@/utils/ingredients";
 
 export default function RecipeDetailsDialog({ dialog }) {
   const { isOpen, close, data: recipes, activeIndex, prev, next } = dialog;
@@ -15,6 +16,7 @@ export default function RecipeDetailsDialog({ dialog }) {
 
   const recipe = recipes[activeIndex];
   const cuisineVisuals = getCuisineVisuals(recipe.cuisine);
+  const ingredients = normalizeIngredients(recipe.ingredients);
 
 
   const handleSaveMeal = async () => {

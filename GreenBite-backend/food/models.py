@@ -5,6 +5,8 @@ from django.utils import timezone
 
 from project.utils.normalize import normalize_ingredient_name
 from django.core.validators import MinValueValidator
+from django.conf import settings
+
 
 
 class CategoryChoices(models.TextChoices):
@@ -85,7 +87,7 @@ class Meal(models.Model):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
     recipe = models.TextField()
     ingredients = models.JSONField()
-    steps = models.JSONField(default=list, blank=True)
+    steps = models.JSONField(default=list, blank=True, null=True)
     serving = models.IntegerField(null=True, blank=True)
     waste = models.JSONField(default=list, blank=True) 
     calories = models.IntegerField(null=True, blank=True)
@@ -140,10 +142,11 @@ class Meal(models.Model):
         verbose_name = "Meal"
         verbose_name_plural = "Meals"
 
-#input get it from ai and make crud operation 
+# #input get it from ai and make crud operation 
 class WasteLog(models.Model):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="waste_logs")
-    meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.SET_NULL, related_name="waste_logs")
+
+    meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.CASCADE, related_name="waste_logs")
 
     name = models.CharField(max_length=100)
     why = models.TextField( )
