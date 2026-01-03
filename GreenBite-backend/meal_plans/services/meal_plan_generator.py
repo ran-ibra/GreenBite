@@ -9,6 +9,7 @@ from meal_plans.models import (
 from food.models import Meal
 from .inventory import InventoryService
 from .recipeProvider import CompositeRecipeProvider, RecipeProvider
+from recipes.models import MealDBRecipe
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +59,35 @@ def generate_meal_plan(user, start_date, num_days, meals_per_day, use_ai_fallbac
                 break
             
             recipe = recipe_candidates[recipe_index]
+            meta = getattr(recipe, "metadata", {}) or {} 
+            logger.info(
+                "Generating meal for plan: title=%s, source=%s, meta=%s",
+                getattr(recipe, "title", None),
+                getattr(recipe, "source", None),
+                meta,
+            )
+            source_recipe = None
+            if meta.get("recipe_id"):
+                try:
+                    source_recipe = MealDBRecipe.objects.get(id=meta["recipe_id"])
+                except MealDBRecipe.DoesNotExist:
+                    source_recipe = None
+
             
-            # Create meal from recipe candidate
             meal = Meal.objects.create(
                 user=user,
                 recipe=recipe.title,
                 ingredients=recipe.ingredients,
                 mealTime=meal_time,
-                photo=recipe.thumbnail
+                photo=recipe.thumbnail,
+                source_mealdb_id=meta.get("mealdb_id"),
+
+            )
+            logger.info(
+                "CREATED MEAL: id=%s, recipe=%s, source_mealdb_id=%s",
+                meal.id,
+                meal.recipe,
+                meal.source_mealdb_id,
             )
             
             MealPlanMeal.objects.create(

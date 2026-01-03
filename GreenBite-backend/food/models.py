@@ -106,7 +106,11 @@ class Meal(models.Model):
     # in helper function inherit from it the new 2 fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+    source_mealdb_id = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
     def __str__(self):
         return f"{self.user.username}'s {self.get_mealTime_display()} - {self.consumed_at.date()}"
     

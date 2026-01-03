@@ -97,7 +97,8 @@ class MealPlanBuilder:
                     recipe=recipe.title,
                     ingredients=recipe.ingredients,
                     mealTime=meal_time,
-                    photo=recipe.thumbnail or ''
+                    photo=recipe.thumbnail or '',
+                    source_mealdb_id=recipe.metadata.get("mealdb_id")
                 )
                 
                 # Link meal to plan day

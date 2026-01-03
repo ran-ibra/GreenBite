@@ -438,10 +438,7 @@ def mealdb_random(request):
 
 @api_view(["GET"])
 def mealdb_detail(request, mealdb_id: str):
-    """
-    GET /recipes/mealdb/<mealdb_id>/
-    Returns full details.
-    """
+    
     # Optional: cache this because it’s pure DB read (safe)
     ck = detail_key(MEALDB_DETAIL_NAMESPACE, 0, int(_safe_int_hash(mealdb_id)))
     cached = cache.get(ck)
@@ -471,15 +468,7 @@ def mealdb_detail(request, mealdb_id: str):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def add_to_favorites(request):
-    """
-    POST /recipes/favorites/add (example)
-    Body: {"recipe_id": 123}  OR  {"mealdb_id": "52772"}
 
-    Notes:
-    - RecipeFavorite.recipe is a ForeignKey to MealDBRecipe, so we must create the favorite
-      using a MealDBRecipe instance (not a string).
-    - Prevent duplicates using the DB unique constraint and/or get_or_create.
-    """
     recipe_id = request.data.get("recipe_id")
     mealdb_id = request.data.get("mealdb_id")
 

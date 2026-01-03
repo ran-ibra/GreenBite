@@ -20,6 +20,9 @@ class MealPlanMealNestedSerializer(serializers.ModelSerializer):
     original_recipe = serializers.CharField(
         source="original_meal.recipe", read_only=True, allow_null=True
     )
+    source_mealdb_id = serializers.CharField(
+        source="meal.source_mealdb_id", read_only=True
+    )
 
     class Meta:
         model = MealPlanMeal
@@ -34,6 +37,7 @@ class MealPlanMealNestedSerializer(serializers.ModelSerializer):
             "is_replaced",
             "replaced_at",
             "original_recipe",
+            "source_mealdb_id",
         ]
 
     def get_photo(self, obj):
