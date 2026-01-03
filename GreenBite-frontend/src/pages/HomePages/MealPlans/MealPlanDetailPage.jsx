@@ -10,21 +10,26 @@ import MealDetailsDialog from "@/components/HomePage/Dialogs/DialogMeals";
 import useDialog from "@/hooks/useDialog";
 import { toast } from "react-hot-toast";
 import MealThumbnail from "@/components/HomePage/Meals/MealThumbnail";
-import { getMealById } from "@/api/mealplan.api";
+import { getMealdbRecipeById } from "@/api/mealdb.api"; 
 
 export default function MealPlanDetailPage() {
   const { id } = useParams();
   const { data, isLoading, isError } = useMealPlanDetail(id);
+  const mealDialog = useDialog(); 
+ const handleViewDetails = (mealSlot) => {
+    const mealdbId = mealSlot?.source_mealdb_id;
+    if (!mealdbId) {
+      toast.error("No MealDB id found for this meal.");
+      return;
+    }
+    mealDialog.open(() => getMealdbRecipeById(mealdbId));
+  };
+
   const confirmPlanMutation = useConfirmPlan();
   const confirmDayMutation = useConfirmDay();
   const replaceMutation = useReplacePlanMeal();
   const skipMutation = useSkipPlanMeal();
 
-  const mealDialog = useDialog(); // ✅ define first
-
-  const handleViewDetails = (mealId) => {
-    mealDialog.open(() => getMealById(mealId)); // ✅ loader function
-  };
 
   if (isLoading) return <p className="p-4">Loading meal plan...</p>;
   if (isError || !data) return <p className="p-4 text-red-500">Failed to load meal plan.</p>;
@@ -161,10 +166,10 @@ export default function MealPlanDetailPage() {
                       {m.recipe || "No recipe yet"}
                     </p>
 
-                    {m.meal && (
+                    {m.source_mealdb_id && (
                       <button
                         className="text-xs text-[#7eb685] underline"
-                        onClick={() => handleViewDetails(m.meal)} // ✅ open dialog
+                        onClick={() => handleViewDetails(m)} 
                       >
                         View details
                       </button>
@@ -183,7 +188,6 @@ export default function MealPlanDetailPage() {
         ))}
       </div>
 
-      {/* ✅ pass dialog object */}
       <MealDetailsDialog dialog={mealDialog} />
   
     </div>
