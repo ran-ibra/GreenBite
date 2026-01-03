@@ -105,7 +105,6 @@ class MealPlanDetailAPIView(APIView):
 
 
 class MealPlanConfirmAPIView(APIView):
-    """✅ NEW: Confirm entire meal plan"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):

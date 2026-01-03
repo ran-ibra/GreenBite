@@ -20,6 +20,9 @@ import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
 import GenerateRecipesPage from "./pages/HomePages/Recipes/GenerateRecipesPage";
 import MyMealsPage from "./pages/HomePages/Meals/MyMealsPage";
+import MealPlansListPage from "./pages/HomePages/MealPlans/MealPlansListPage";
+import GenerateMealPlanPage from "./pages/HomePages/MealPlans/MealPlanPage";
+import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +75,11 @@ function App() {
                   <Route index element={<MyMealsPage />} />
                 </Route>
 
+            <Route path="mealplans">
+                  <Route index element={<MealPlansListPage />} />
+                  <Route path="generate" element={<GenerateMealPlanPage />} />
+                  <Route path=":id" element={<MealPlanDetailPage />} />
+                </Route>
               </Route>
             </Route>
             

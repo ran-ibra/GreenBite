@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status, generics
 from ..models import Meal
-from ..serializers import MealSerializer, LeftoversSerializer
+from ..serializers import MealSerializer, LeftoversSerializer, MealDetailSerializer
+
 from rest_framework.views import APIView
 
 from ..utils.caching import detail_key,list_key, invalidate_cache
@@ -87,3 +88,4 @@ class DeleteMealAPIView(APIView):
             {"detail": "Meal deleted successfully"},
             status=204
         )
+
