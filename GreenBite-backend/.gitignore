@@ -14,6 +14,8 @@ venv/
 ENV/
 .env
 
+media/
+
 # Django stuff
 db.sqlite3
 media/
@@ -21,7 +23,7 @@ staticfiles/
 *.log
 
 # Env files (secrets)
- .env
+.env
 
 # VS Code
 .vscode/
