@@ -1,5 +1,6 @@
 // src/components/dialogs/RecipeDetailsDialog.jsx
 import { MEAL_TIME_COLORS, DIFFICULTY_COLORS, getCuisineVisuals } from "@/utils/constants";
+import { normalizeIngredients } from "@/utils/ingredients";
 import { Clock, Utensils } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useSaveMeal from "@/hooks/useSaveMeals";
@@ -14,7 +15,7 @@ export default function RecipeDetailsDialog({ dialog }) {
 
   const recipe = recipes[activeIndex];
   const cuisineVisuals = getCuisineVisuals(recipe.cuisine);
-  const ingredients = normalizeIngredients(recipe.ingredients);
+  const normalizedIngredients = normalizeIngredients(recipe.ingredients);
 
   const handleSaveMeal = () => {
     saveMealMutate(recipe, {
@@ -120,11 +121,11 @@ export default function RecipeDetailsDialog({ dialog }) {
         )}
 
         {/* Ingredients */}
-        {recipe.ingredients?.length > 0 && (
+        {normalizedIngredients?.length > 0 && (
           <>
             <h3 className="font-semibold mt-4 mb-2">Ingredients</h3>
             <ul className="list-disc pl-6 text-sm lg:text-base">
-              {recipe.ingredients.map((i, idx) => (
+              {normalizedIngredients.map((i, idx) => (
                 <li key={idx}>
                   {i.charAt(0).toUpperCase() + i.slice(1)}
                 </li>
@@ -167,4 +168,3 @@ export default function RecipeDetailsDialog({ dialog }) {
     </div>
   );
 }
-

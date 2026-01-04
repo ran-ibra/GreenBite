@@ -11,8 +11,9 @@ export default function DialogMeals({ dialog }) {
   const { isOpen, data, activeIndex, loading, close } = dialog;
 
   if (!isOpen) return null;
+  const list = Array.isArray(data) ? data : data ? [data] : [];
+  const recipe = list[activeIndex ?? 0];
 
-  const recipe = data[activeIndex];
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">

@@ -7,7 +7,7 @@ import {
   useSkipPlanMeal,
 } from "@/hooks/useMealPlans";
 import MealDetailsDialog from "@/components/HomePage/Dialogs/DialogMeals";
-import useDialog from "@/hooks/useDialog";
+import {useDialogone} from "@/hooks/useDialog";
 import { toast } from "react-hot-toast";
 import MealThumbnail from "@/components/HomePage/Meals/MealThumbnail";
 import { getMealdbRecipeById } from "@/api/mealdb.api";
@@ -31,7 +31,7 @@ export default function MealPlanDetailPage() {
   const { id } = useParams();
   const { data, isLoading, isError } = useMealPlanDetail(id);
 
-  const mealDialog = useDialog();
+  const mealDialog = useDialogone();
   const confirmPlanMutation = useConfirmPlan();
   const confirmDayMutation = useConfirmDay();
   const replaceMutation = useReplacePlanMeal();

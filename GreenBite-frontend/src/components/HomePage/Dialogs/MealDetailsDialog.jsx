@@ -2,23 +2,27 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MEAL_TIME_COLORS, getCuisineVisuals } from "@/utils/constants";
-import { Utensils, X } from "lucide-react";
+import { Clock, Utensils, X } from "lucide-react"; 
 import AddLeftoversDialog from "./AddLeftoversDialog";
 import { fetchMealDetails } from "@/api/meals.api";
 import { mapMealFromApi } from "@/utils/meal.mapper";
 import useSaveMeal from "@/hooks/useSaveMeals";
+import { normalizeIngredients } from "@/utils/ingredients";
+
 
 export default function MealDetailsDialog({ dialog }) {
   const { isOpen, close, data: dialogData, activeIndex } = dialog;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [leftoversOpen, setLeftoversOpen] = useState(false);
+ 
 
   // Get the meal ID
   const mealId = dialogData?.[activeIndex];
 
   // Save meal hook
   const saveMealHook = useSaveMeal(mealId);
+
 
   // Fetch meal details
   const { data: meal, isLoading, isError } = useQuery({
@@ -60,6 +64,9 @@ export default function MealDetailsDialog({ dialog }) {
     );
 
   const cuisineVisuals = getCuisineVisuals(meal.cuisine);
+  const mealTimeKey = meal.mealTime
+    ? meal.mealTime.charAt(0).toUpperCase() + meal.mealTime.slice(1).toLowerCase()
+    : "";
 
   const handleClose = () => dialog?.onClose?.();
 
@@ -114,7 +121,7 @@ export default function MealDetailsDialog({ dialog }) {
         {/* Ingredients */}
         <h3 className="font-semibold mb-2">Ingredients</h3>
         <ul className="list-disc pl-6 mb-6 text-sm lg:text-base">
-          {meal.ingredients?.map((i, idx) => (
+          {normalizeIngredients(meal.ingredients)?.map((i, idx) => (
             <li key={idx}>{i}</li>
           ))}
         </ul>

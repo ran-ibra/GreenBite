@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('food', '0009_meal_has_leftovers_meal_leftovers_and_more'),
+        ('food', '0003_meal_source_mealdb_id'),
     ]
 
     operations = [

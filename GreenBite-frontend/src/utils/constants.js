@@ -121,7 +121,9 @@ export const CUISINE_COLOR_PALETTE = [
 ========================= */
 
 export const getCuisineVisuals = (cuisine = "") => {
-  const key = cuisine.toLowerCase().trim();
+  const key = (typeof cuisine === "string" ? cuisine : "")
+    .trim()
+    .toLowerCase();
 
   const countryCode =
     CUISINE_COUNTRY_MAP[key] || "UN"; // 🌍 default

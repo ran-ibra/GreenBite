@@ -1,11 +1,5 @@
 import { Heart } from "lucide-react";
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { replaceMeal, skipMeal } from "@/api/mealplan.api";
-import { GiHotMeal } from "react-icons/gi";
-import { FaExchangeAlt, FaBan, FaUndo } from "react-icons/fa";
-import { toast } from "react-hot-toast";
-import { normalizeIngredients } from "@/utils/ingredients";
+import { useMemo, useState } from "react";
 
 import {
   MEAL_TIME_COLORS,
@@ -13,8 +7,10 @@ import {
   DEFAULT_MEAL_IMAGE,
   INGREDIENT_PILL_COLORS,
 } from "@/utils/constants";
+import { normalizeIngredients } from "@/utils/ingredients"; 
 
-export default function MealCard({ meal, onDelete, onView, dayId, isConfirmed }) {
+
+export default function MealCard({ meal, onDelete, onView }) {
   const {
     title,
     ingredients = [],
@@ -26,150 +22,118 @@ export default function MealCard({ meal, onDelete, onView, dayId, isConfirmed })
     cuisineVisuals,
     calories,
   } = meal;
-
+  
+  const normalizedIngredients = useMemo(
+    () => normalizeIngredients(ingredients),
+    [ingredients]
+  );
   const mealTimeKey =
     mealTime?.charAt(0).toUpperCase() + mealTime?.slice(1).toLowerCase();
 
   const [liked, setLiked] = useState(false);
-  const [isReplacing, setIsReplacing] = useState(false);
-  const queryClient = useQueryClient();
-
-  const replaceMutation = useMutation({
-    mutationFn: () => replaceMeal(meal.id, true),
-    onSuccess: () => {
-      toast.success("Meal replaced successfully!");
-      queryClient.invalidateQueries(["mealPlan"]);
-      setIsReplacing(false);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.error || "Failed to replace meal");
-      setIsReplacing(false);
-    },
-  });
-
-  const skipMutation = useMutation({
-    mutationFn: () => skipMeal(meal.id),
-    onSuccess: () => {
-      toast.success("Meal skipped");
-      queryClient.invalidateQueries(["mealPlan"]);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.error || "Failed to skip meal");
-    },
-  });
-
-  const handleReplace = () => {
-    setIsReplacing(true);
-    replaceMutation.mutate();
-  };
-
-  const getMealTimeColor = (mealTime) => {
-    const colors = {
-      breakfast: "bg-yellow-100 text-yellow-800",
-      lunch: "bg-blue-100 text-blue-800",
-      dinner: "bg-purple-100 text-purple-800",
-      snack: "bg-green-100 text-green-800",
-    };
-    return colors[mealTime] || "bg-gray-100 text-gray-800";
-  };
-
-  const ingredientsList = normalizeIngredients(meal.ingredients);
 
   return (
     <div
-      className={`bg-white rounded-xl p-4 shadow-sm border ${
-        meal.is_skipped ? "opacity-50 border-red-300" : "border-gray-200"
-      } ${meal.is_replaced ? "border-[#7eb685] border-2" : ""}`}
+      className={`bg-white rounded-2xl overflow-hidden flex flex-col justify-between
+  ${cuisineVisuals.shadowClass}`}
     >
-      {/* Meal Time Badge */}
-      <div className="flex justify-between items-start mb-3">
+      {/* ===== Header ===== */}
+      <div className="flex justify-between items-center p-6">
         <span
-          className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getMealTimeColor(
-            meal.meal_time
-          )}`}
+          className={`px-4 py-1 rounded-full text-sm font-medium
+      ${hasLeftovers ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
         >
-          {meal.meal_time}
+          {hasLeftovers ? "Has leftovers" : "No leftovers"}
         </span>
 
-        {!isConfirmed && (
-          <div className="flex gap-2">
-            <button
-              onClick={handleReplace}
-              disabled={isReplacing}
-              className="p-2 hover:bg-[#7eb685] hover:text-white rounded-full transition-colors text-gray-600"
-              title="Replace meal"
-            >
-              {isReplacing ? (
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-[#7eb685] rounded-full animate-spin" />
-              ) : (
-                <FaExchangeAlt />
-              )}
-            </button>
-            <button
-              onClick={() => skipMutation.mutate()}
-              className="p-2 hover:bg-red-500 hover:text-white rounded-full transition-colors text-gray-600"
-              title="Skip meal"
-            >
-              <FaBan />
-            </button>
-          </div>
-        )}
+        <span className="text-gray-500 text-sm">
+          {new Date(createdAt).toLocaleString()}
+        </span>
       </div>
 
-      {/* Recipe Info */}
-      <div className="flex gap-3 mb-3">
-        <div className="w-16 h-16 bg-lime-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-          {meal.photo ? (
-            <img
-              src={meal.photo}
-              alt={meal.recipe}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <GiHotMeal className="text-3xl text-[#7eb685]" />
-          )}
-        </div>
+      {/* Divider */}
+      <div className="h-px bg-gray-200" />
 
-        <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-sm text-gray-900 mb-1 truncate">
-            {meal.recipe || "No recipe"}
-          </h4>
+      {/* ===== Content ===== */}
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 p-6">
+        {/* Image */}
+        <img
+          src={MEAL_TIME_IMAGES[mealTimeKey] || DEFAULT_MEAL_IMAGE}
+          alt={mealTime}
+          className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full object-cover mx-auto lg:mx-0"
+        />
 
-          {meal.is_replaced && (
-            <div className="flex items-center gap-1 text-xs text-[#7eb685] mb-1">
-              <FaUndo className="text-xs" />
-              <span>Replaced</span>
-            </div>
-          )}
+        {/* Text */}
+        <div className="flex-1">
+          <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold mb-2 text-center lg:text-left">
+            {title}
+          </h3>
 
-          {meal.is_skipped && (
-            <span className="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
-              Skipped
+          {/* Pills */}
+          <div className="flex flex-wrap gap-2 mb-4 font-medium justify-center lg:justify-start">
+            <span className={`px-3 py-1 rounded-full text-xs ${cuisineVisuals.pill}`}>
+              {cuisine}
             </span>
-          )}
+
+            <span
+              className={`px-3 py-1 rounded-full text-xs ${MEAL_TIME_COLORS[mealTimeKey]}`}
+            >
+              {mealTime}
+            </span>
+
+            <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-yellow-100 text-orange-700">
+              <span>🔥</span>
+              <span>{calories} Kcal</span>
+            </div>
+
+            <span className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+              {serving} servings
+            </span>
+          </div>
+
+          {/* Ingredients */}
+          <h4 className="font-medium mb-4 text-center lg:text-left">Ingredients:</h4>
+          <div className="flex flex-wrap gap-2 font-medium justify-center lg:justify-start">
+            {normalizedIngredients.slice(0, 4).map((ing, i) => (
+              <span
+                key={i}
+                className={`px-3 py-1 rounded-full text-xs ${INGREDIENT_PILL_COLORS[i % INGREDIENT_PILL_COLORS.length]
+                  }`}
+              >
+                {ing}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ✅ Ingredients list rendered as strings only */}
-      {ingredientsList.length > 0 && (
-        <div className="border-t pt-3">
-          <p className="text-xs font-medium text-gray-700 mb-2">Ingredients:</p>
-          <ul className="space-y-1 max-h-24 overflow-y-auto text-xs text-gray-600">
-            {ingredientsList.map((ing, index) => (
-              <li key={index} className="flex items-start gap-1">
-                <span className="text-[#7eb685] mt-0.5">•</span>
-                <span className="line-clamp-1">{ing}</span>
-              </li>
-            ))}
-          </ul>
+      {/* ===== Footer ===== */}
+      <div className="flex justify-between items-center bg-gray-100 p-6">
+        {/* Buttons on the left */}
+        <div className="flex gap-3 flex-none">
+          <button
+            onClick={onView}
+            className="cursor-pointer bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition shadow"
+          >
+            View details
+          </button>
+          <button
+            onClick={onDelete}
+            className="cursor-pointer bg-gray-600 text-white  px-4 py-2 rounded-lg hover:bg-gray-700 transition shadow"
+          >
+            Delete
+          </button>
         </div>
-      )}
 
-      {meal.is_replaced && meal.original_recipe && (
-        <div className="mt-3 text-xs text-gray-500 border-t pt-2">
-          <span className="font-medium">Originally:</span> {meal.original_recipe}
-        </div>
-      )}
+        {/* Heart on the right */}
+        <Heart
+          size={32}
+          className={`cursor-pointer transition-colors duration-200 ${liked ? "fill-red-500 text-red-500" : "fill-transparent text-red-500"
+            }`}
+          onClick={() => setLiked((prev) => !prev)}
+        />
+      </div>
     </div>
+
   );
 }

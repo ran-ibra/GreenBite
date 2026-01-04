@@ -23,6 +23,9 @@ import MyMealsPage from "./pages/HomePages/Meals/MyMealsPage";
 
 import UserLayout from "./layouts/UserLayout";
 import Settings from "./pages/user/Settings";
+import MealPlansListPage from "./pages/HomePages/MealPlans/MealPlansListPage";
+import GenerateMealPlanPage from "./pages/HomePages/MealPlans/MealPlanPage";
+import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
