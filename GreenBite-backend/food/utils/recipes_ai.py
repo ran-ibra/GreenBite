@@ -80,6 +80,7 @@ def generate_meals_openai(ingredients):
             temperature=0.6,
             max_tokens=3500,
             response_format={"type": "json_object"},
+            timeout=60,
            
         )
 
@@ -146,13 +147,11 @@ def generate_meals_openai(ingredients):
                 }
             )
 
-        # ✅ Validate relevance: at least 1 meal must mention at least 1 input ingredient
-        if not normalized or not any(_meal_mentions_any_ingredient(x, ing_norm) for x in normalized):
-            logger.warning("AI meals not relevant to ingredients=%s. Falling back.", ing)
-            scored = fallback_meals_from_mealdb(ing)
-            return [mealdb_recipe_to_ai_shape(m) for _, m in scored]
 
-        return normalized
+        if normalized:
+            return normalized
+        scored = fallback_meals_from_mealdb(ing)
+        return [mealdb_recipe_to_ai_shape(m) for _, m in scored]
 
     except Exception:
         logger.exception("OpenAI failed; using fallback meals.")

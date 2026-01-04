@@ -60,8 +60,9 @@ class SaveMealLeftoversAPIView(APIView):
 
         meal.save_leftovers_to_food_log()
         response_data = MealSerializer(meal).data
-        #invalidating cache
         invalidate_cache(NAMESPACE,request.user.id, detail_id=meal.id)
+        bump_list_version("foodlog", request.user.id)
+
         return Response(response_data, status=200)
 
 

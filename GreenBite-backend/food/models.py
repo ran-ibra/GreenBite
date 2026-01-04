@@ -5,6 +5,8 @@ from django.utils import timezone
 
 from project.utils.normalize import normalize_ingredient_name
 from django.core.validators import MinValueValidator
+from django.conf import settings
+
 
 
 class CategoryChoices(models.TextChoices):
@@ -52,6 +54,11 @@ class Meal(models.Model):
     consumed_at = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    source_mealdb_id = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
     
     def __str__(self):
         return f"{self.user.username}'s {self.get_mealTime_display()} - {self.consumed_at.date()}"

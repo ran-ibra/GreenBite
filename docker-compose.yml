@@ -12,6 +12,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DB_NAME=greenbite
       - DB_USER=postgres
@@ -19,6 +21,27 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/1
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+  celery:
+    build: ./GreenBite-backend
+    container_name: greenbite-celery
+    command: celery -A project worker --loglevel=info
+    volumes:
+      - ./GreenBite-backend:/app
+    env_file:
+      - ./GreenBite-backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_NAME=greenbite
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1  
 
   db:
     image: postgres:15

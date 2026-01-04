@@ -133,3 +133,26 @@ class WasteLogSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"items[{i}].name is required")
             
         return value
+class MealDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Meal
+        fields = [
+            "id",
+            "user",
+            "recipe",
+            "ingredients",
+            "steps",
+            "serving",
+            "waste",
+            "calories",
+            "has_leftovers",
+            "leftovers_saved",
+            "leftovers",
+            "cuisine",
+            "photo",
+            "mealTime",
+            "consumed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["user"]

@@ -1,5 +1,5 @@
 import { Heart } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   MEAL_TIME_COLORS,
@@ -7,6 +7,8 @@ import {
   DEFAULT_MEAL_IMAGE,
   INGREDIENT_PILL_COLORS,
 } from "@/utils/constants";
+import { normalizeIngredients } from "@/utils/ingredients"; 
+
 
 export default function MealCard({ meal, onDelete, onView }) {
   const {
@@ -20,7 +22,11 @@ export default function MealCard({ meal, onDelete, onView }) {
     cuisineVisuals,
     calories,
   } = meal;
-
+  
+  const normalizedIngredients = useMemo(
+    () => normalizeIngredients(ingredients),
+    [ingredients]
+  );
   const mealTimeKey =
     mealTime?.charAt(0).toUpperCase() + mealTime?.slice(1).toLowerCase();
 
@@ -88,7 +94,7 @@ export default function MealCard({ meal, onDelete, onView }) {
           {/* Ingredients */}
           <h4 className="font-medium mb-4 text-center lg:text-left">Ingredients:</h4>
           <div className="flex flex-wrap gap-2 font-medium justify-center lg:justify-start">
-            {ingredients.slice(0, 4).map((ing, i) => (
+            {normalizedIngredients.slice(0, 4).map((ing, i) => (
               <span
                 key={i}
                 className={`px-3 py-1 rounded-full text-xs ${INGREDIENT_PILL_COLORS[i % INGREDIENT_PILL_COLORS.length]

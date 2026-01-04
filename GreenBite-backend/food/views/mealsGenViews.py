@@ -59,7 +59,7 @@ class SaveAIMealAPIView(APIView):
 
     def post(self, request):
         serializer = SaveAIMealSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True) 
 
         meal = Meal.objects.create(
             user=request.user,

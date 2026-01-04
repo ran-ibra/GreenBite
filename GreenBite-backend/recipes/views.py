@@ -1,24 +1,22 @@
 import json
 import random
 from decimal import Decimal
-
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Func, Value
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.cache import cache
-
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from rest_framework.decorators import permission_classes
 
 from food.models import FoodLogSys, FoodLogUsage
 from food.utils.caching import list_key, detail_key, get_list_version
-from recipes.models import MealDBRecipe
+from recipes.models import MealDBRecipe, RecipeFavorite
 from recipes.serializers import ConsumePreviewSerializer, ConsumeConfirmSerializer
 
 # OpenAI is optional fallback
@@ -440,10 +438,7 @@ def mealdb_random(request):
 
 @api_view(["GET"])
 def mealdb_detail(request, mealdb_id: str):
-    """
-    GET /recipes/mealdb/<mealdb_id>/
-    Returns full details.
-    """
+    
     # Optional: cache this because it’s pure DB read (safe)
     ck = detail_key(MEALDB_DETAIL_NAMESPACE, 0, int(_safe_int_hash(mealdb_id)))
     cached = cache.get(ck)
@@ -470,3 +465,38 @@ def mealdb_detail(request, mealdb_id: str):
 
     cache.set(ck, data, timeout=60 * 10)  # 10 minutes
     return Response(data, status=status.HTTP_200_OK)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_to_favorites(request):
+
+    recipe_id = request.data.get("recipe_id")
+    mealdb_id = request.data.get("mealdb_id")
+
+    if not recipe_id and not mealdb_id:
+        return Response(
+            {"detail": "Provide either 'recipe_id' or 'mealdb_id'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Fetch the recipe
+    if recipe_id:
+        recipe = get_object_or_404(MealDBRecipe, id=recipe_id)
+    else:
+        recipe = get_object_or_404(MealDBRecipe, mealdb_id=str(mealdb_id).strip())
+
+    # Create favorite safely (no duplicates)
+    favorite, created = RecipeFavorite.objects.get_or_create(
+        user=request.user,
+        recipe=recipe,
+    )
+
+    if not created:
+        return Response(
+            {"detail": "Recipe is already in favorites"},
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(
+        {"detail": "Recipe added to favorites", "favorite_id": favorite.id},
+        status=status.HTTP_201_CREATED,
+    )
