@@ -5,6 +5,14 @@ import { Utensils, X } from "lucide-react";
 import AddLeftoversDialog from "./AddLeftoversDialog";
 
 export default function MealDetailsDialog({ dialog }) {
+  const { isOpen, close, data, activeIndex, loading } = dialog;
+
+  if (!isOpen) return null;
+
+  const meal = data?.[activeIndex];
+
+  if (!meal) return null;
+
   const navigate = useNavigate();
 
   // ================== Hooks always at top ==================
@@ -18,7 +26,6 @@ export default function MealDetailsDialog({ dialog }) {
       </div>
     );
 
-  const meal = data[activeIndex];
   if (!meal)
     return (
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

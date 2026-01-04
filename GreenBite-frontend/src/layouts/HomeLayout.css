@@ -1,6 +1,7 @@
 /* .layout {
   display: grid;
   min-height: 100vh;
+  z-index: -1;
 
   grid-template-columns:
     clamp(200px, 15vw, 240px)

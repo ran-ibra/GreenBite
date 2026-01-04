@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('food', '0006_alter_meal_mealtime'),
+        ('food', '0003_meal_source_mealdb_id'),
     ]
 
     operations = [
