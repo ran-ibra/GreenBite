@@ -115,7 +115,7 @@ class Meal(models.Model):
 
 class FoodLogSys(models.Model):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
-    meal = models.ForeignKey("food.Meal", null=True, blank=True, on_delete=models.CASCADE, related_name="food_logs")
+    meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.CASCADE, related_name="food_logs")
     name = models.CharField(max_length=100)
     quantity = models.DecimalField(
         max_digits=10,
@@ -164,12 +164,10 @@ class FoodLogSys(models.Model):
         verbose_name = "Food Log Entry"
         verbose_name_plural = "Food Log Entries"
 
-
-
-# #input get it from ai and make crud operation 
+#input get it from ai and make crud operation 
 class WasteLog(models.Model):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="waste_logs")
-    meal = models.ForeignKey("food.Meal", null=True, blank=True, on_delete=models.CASCADE, related_name="waste_logs")
+    meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.CASCADE, related_name="waste_logs")
 
     name = models.CharField(max_length=100)
     why = models.TextField( )

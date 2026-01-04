@@ -20,14 +20,16 @@ import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
 import GenerateRecipesPage from "./pages/HomePages/Recipes/GenerateRecipesPage";
 import MyMealsPage from "./pages/HomePages/Meals/MyMealsPage";
-import MealPlansListPage from "./pages/HomePages/MealPlans/MealPlansListPage";
-import GenerateMealPlanPage from "./pages/HomePages/MealPlans/MealPlanPage";
-import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
+
+import UserLayout from "./layouts/UserLayout";
+import Settings from "./pages/user/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      retry: 1,
       staleTime: 1000 * 5,
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -55,6 +57,11 @@ function App() {
             </Route>
             
             <Route element={<ProtectedRoute />}>
+              {/* /User */}
+              <Route path="/user" element={<UserLayout />}>
+                <Route path="settings" element={<Settings />} />
+              </Route>
+              {/* --------------------------------------- */}
               <Route path="/home" element={<HomeLayout />}>
                 {/* /home */}
                 <Route index element={<MyMealsPage />} />
