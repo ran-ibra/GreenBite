@@ -107,16 +107,41 @@ def food_log_detail(request, pk):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
-        # Delete a food log
+        # Keep reference to the meal if this food log is a leftover
+        meal = food_log.meal
+        food_log_id = food_log.id
+
+        # Delete the food log first
         food_log.delete()
+
+        if meal and meal.leftovers:
+            # Remove this leftover
+            meal.leftovers = [
+                l for l in meal.leftovers
+                if str(l.get("food_log_id")) != str(food_log_id)
+            ]
+
+            # If no leftovers remain, reset JSON and flags
+            if not meal.leftovers:
+                meal.leftovers = None
+                meal.has_leftovers = False
+                meal.leftovers_saved = False
+
+            # Persist changes
+            meal.save(update_fields=[
+                "leftovers",
+                "has_leftovers",
+                "leftovers_saved",
+                "updated_at"
+            ])
+
         
         cache.delete(detail_key(NAMESPACE, request.user.id, pk))
         bump_list_version(NAMESPACE, request.user.id)
         return Response(
-            {'message': 'Food log deleted successfully'}, 
+            {"message": "Food log deleted successfully"},
             status=status.HTTP_204_NO_CONTENT
         )
-
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

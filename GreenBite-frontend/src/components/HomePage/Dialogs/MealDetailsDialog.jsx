@@ -1,109 +1,225 @@
-import {
-  MEAL_TIME_COLORS,
-  getCuisineVisuals,
-} from "@/utils/constants";
-import { Clock, Utensils, X } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { normalizeIngredients } from "@/utils/ingredients";
+import { MEAL_TIME_COLORS, getCuisineVisuals } from "@/utils/constants";
+import { Utensils, X } from "lucide-react";
+import AddLeftoversDialog from "./AddLeftoversDialog";
 
 export default function MealDetailsDialog({ dialog }) {
   const navigate = useNavigate();
-  const meal = dialog?.data?.meal;
 
-  // ✅ If no meal data yet, render nothing (or a skeleton)
-  if (!meal) {
-    return null;
-  }
+  // ================== Hooks always at top ==================
+  const [leftoversOpen, setLeftoversOpen] = useState(false);
 
-  const ingredients = normalizeIngredients(meal.ingredients);
-  const mealTimeKey =
-    meal.mealTime ||
-    meal.meal_time ||
-    "Breakfast";
+  if (!isOpen) return null;
+  if (loading)
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl">Loading meal...</div>
+      </div>
+    );
+
+  const meal = data[activeIndex];
+  if (!meal)
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl text-red-500">
+          No meal data found
+        </div>
+      </div>
+    );
 
   const cuisineVisuals = getCuisineVisuals(meal.cuisine);
 
   const handleClose = () => dialog?.onClose?.();
 
-  const handleViewRecipe = () => {
-    if (meal?.id) {
-      navigate(`/recipes/${meal.id}`);
-      handleClose();
-    }
+  const handleSaveLeftovers = () => {
+    if (meal.leftovers_saved) return;
+    setLeftoversOpen(true);
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 relative shadow-xl">
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute right-4 top-4 text-gray-500 hover:text-gray-800"
-        >
-          <X size={18} />
-        </button>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-gradient-to-br from-orange-50 via-white to-green-50 rounded-xl max-w-4xl w-full p-6 overflow-y-auto max-h-[90vh]">
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              MEAL_TIME_COLORS[mealTimeKey] || "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {mealTimeKey}
-          </span>
-
-          <h2 className="text-lg font-semibold truncate flex-1">
-            {meal.title || meal.recipe || "Meal details"}
+        {/* ================= Header ================= */}
+        <div className="relative mb-4 px-8">
+          <h2 className="text-xl lg:text-2xl font-bold text-center">
+            {meal.title || meal.recipe}
           </h2>
+          <button
+            onClick={close}
+            className="cursor-pointer absolute top-0 right-0 mt-2 mr-2 text-gray-500 hover:text-red-500 transition"
+          >
+            <X size={24} />
+          </button>
         </div>
 
-        {/* Cuisine + calories */}
-        <div className="flex items-center gap-3 text-sm text-gray-600 mb-4">
-          <div className="flex items-center gap-1">
-            <Utensils size={16} />
-            <span>{meal.cuisine || "Unknown cuisine"}</span>
-          </div>
+        <div className="h-px bg-gray-200 mb-4" />
+
+        {/* ================= Pills ================= */}
+        <div className="flex flex-wrap gap-2 mb-6 justify-center">
+          {meal.cuisine && (
+            <span
+              className={`px-3 py-2 rounded-full text-xs font-medium ${cuisineVisuals.pill}`}
+            >
+              {meal.cuisine}
+            </span>
+          )}
+          {meal.mealTime && (
+            <span
+              className={`px-3 py-2 rounded-full text-xs font-medium ${MEAL_TIME_COLORS[mealTimeKey] || "bg-gray-100 text-gray-700"
+                }`}
+            >
+              {meal.mealTime}
+            </span>
+          )}
           {meal.calories && (
             <div className="flex items-center gap-1">
               <Clock size={16} />
               <span>{meal.calories} kcal</span>
             </div>
           )}
-        </div>
-
-        {/* Image */}
-        <div className="w-full h-40 rounded-xl overflow-hidden mb 4 bg-gray-100">
-          <img
-            src={meal.photo || cuisineVisuals.image}
-            alt={meal.title || meal.recipe}
-            className="w-full h-full object-cover"
-          />
+          {meal.serving && (
+            <div className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+              <Utensils size={14} />
+              <span>{meal.serving} servings</span>
+            </div>
+          )}
         </div>
 
         {/* Ingredients */}
         <h3 className="font-semibold mb-2">Ingredients</h3>
-        <ul className="list-disc pl-6 mb-6 text-sm">
-          {ingredients.map((ing, idx) => (
-            <li key={idx}>{ing}</li>
+        <ul className="list-disc pl-6 mb-6 text-sm lg:text-base">
+          {meal.ingredients?.map((i, idx) => (
+            <li key={idx}>{i}</li>
           ))}
         </ul>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
+        <div className="h-px bg-gray-200 mb-6" />
+
+        {/* ================= Steps ================= */}
+        <h3 className="font-semibold mb-2">Steps</h3>
+        <ol className="list-decimal pl-6 mb-6 text-sm lg:text-base">
+          {meal.steps?.map((s, idx) => (
+            <li key={idx}>{s}</li>
+          ))}
+        </ol>
+
+        {/* ================= Waste Section ================= */}
+        <div className="h-px bg-gray-200 mb-6" />
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-semibold">Predicted Waste</h3>
           <button
             onClick={handleClose}
             className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             Close
           </button>
-          <button
-            onClick={handleViewRecipe}
-            className="px-4 py-2 text-sm rounded-lg bg-[#7eb685] text-white hover:bg-[#6aa56f]"
-          >
-            View full recipe
-          </button>
         </div>
+        {meal.waste?.length > 0 ? (
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-sm border border-green-600 min-w-[600px]">
+              <thead className="bg-green-100">
+                <tr>
+                  <th className="p-2 text-left">Item</th>
+                  <th className="p-2 text-left">Amount</th>
+                  <th className="p-2 text-left">Disposal</th>
+                  <th className="p-2 text-left">Reuse Ideas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {meal.waste.map((w, idx) => (
+                  <tr
+                    key={idx}
+                    className="border-t border-green-600 hover:bg-green-50"
+                  >
+                    <td className="p-2 font-medium">{w.name}</td>
+                    <td className="p-2">
+                      {w.estimated_amount}
+                      {w.unit}
+                    </td>
+                    <td className="p-2 capitalize">{w.disposal}</td>
+                    <td className="p-2">
+                      {w.reuse_ideas?.length > 0 ? (
+                        <ul className="list-disc pl-5">
+                          {w.reuse_ideas.map((idea, idx2) => (
+                            <li key={idx2}>{idea}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 mb-6">
+            No predicted waste for this meal.
+          </p>
+        )}
+
+        {/* ================= Leftovers Callout ================= */}
+        {!meal.leftovers_saved && (
+          <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-700 font-medium">Is there any leftovers?</p>
+            <button
+              onClick={handleSaveLeftovers}
+              className="bg-green-500 text-white px-5 py-2 rounded-md hover:bg-green-600 transition"
+            >
+              Add leftovers
+            </button>
+          </div>
+        )}
+
+        {meal.leftovers && meal.leftovers.length > 0 && (
+          <div className="overflow-x-auto mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Leftovers</h3>
+              <button
+                onClick={() => navigate("/home/foodlog")}
+                className="text-sm text-red-600 hover:underline"
+              >
+                View Food Log →
+              </button>
+            </div>
+            <table className="w-full text-sm border border-red-300 min-w-[600px] rounded-lg overflow-hidden shadow-sm">
+              <thead className="bg-red-200">
+                <tr>
+                  <th className="p-2 text-left">Name</th>
+                  <th className="p-2 text-left">Quantity</th>
+                  <th className="p-2 text-left">Unit</th>
+                  <th className="p-2 text-left">Expiry</th>
+                </tr>
+              </thead>
+              <tbody>
+                {meal.leftovers.map((leftover, idx) => (
+                  <tr
+                    key={leftover.food_log_id || idx}
+                    className="border-t border-red-200 hover:bg-red-50"
+                  >
+                    <td className="p-2 font-medium">{leftover.name}</td>
+                    <td className="p-2">{leftover.quantity}</td>
+                    <td className="p-2">{leftover.unit}</td>
+                    <td className="p-2">{leftover.expiry_date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ================= Leftovers Dialog ================= */}
+        <AddLeftoversDialog
+          open={leftoversOpen}
+          onClose={() => setLeftoversOpen(false)}
+          meal={{
+            ...meal,
+            leftovers: meal.leftovers || [], // ensure leftovers is always array
+          }}
+        />
       </div>
     </div>
   );
