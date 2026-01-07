@@ -2,7 +2,7 @@ services:
   backend:
     build: ./GreenBite-backend
     container_name: greenbite-backend
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000 --noreload
     volumes:
       - ./GreenBite-backend:/app
     env_file:

@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
 from .managers import UserManager
 
 
@@ -39,7 +40,7 @@ class Profile(models.Model):
     - Holds user-related UI data
     """
     user = models.OneToOneField(
-        "accounts.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="profile"
     )

@@ -116,10 +116,9 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
 
 
 class UserMeSerializer(UserSerializer):
-    """
-    READ ONLY USER DATA
-    """
     profile = ProfileSerializer(read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
+    subscription = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         fields = (
@@ -128,5 +127,21 @@ class UserMeSerializer(UserSerializer):
             "first_name",
             "last_name",
             "profile",
+            "is_subscribed",
+            "subscription",
         )
 
+    def get_is_subscribed(self, obj):
+        subscription = getattr(obj, "subscription", None)
+        return bool(subscription and subscription.is_active)
+
+    def get_subscription(self, obj):
+        subscription = getattr(obj, "subscription", None)
+
+        if not subscription or not subscription.is_active:
+            return None
+
+        return {
+            "plan": subscription.plan.name if subscription.plan else None,
+            "ends_at": subscription.end_date,
+        }
