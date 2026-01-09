@@ -38,7 +38,7 @@ export const CUISINE_COUNTRY_MAP = {
   thai: "TH",
   vietnamese: "VN",
   asian: "CN",
-
+  
   /* ===== Indian / South Asian ===== */
   indian: "IN",
   pakistani: "PK",
@@ -60,6 +60,7 @@ export const CUISINE_COUNTRY_MAP = {
   jordanian: "JO",
   palestinian: "PS",
   saudi: "SA",
+  "saudi arabian": "SA",
   qatari: "QA",
   emirati: "AE",
   kuwaiti: "KW",
@@ -68,17 +69,38 @@ export const CUISINE_COUNTRY_MAP = {
   yemen: "YE",
   middle_eastern: "LB",
   "middle eastern": "LB",
+  algerian: "DZ",
 
   /* ===== European ===== */
   french: "FR",
   german: "DE",
+  british: "GB",
 
   /* ===== American ===== */
   american: "US",
   mexican: "MX",
+  argentinian: "AR",
+  canadian: "CA",
+
 
   /* ===== African ===== */
   ethiopian: "ET",
+
+  australian: "AU",
+  croatian: "HR",
+  dutch: "NL",
+  filipino: "PH",
+  irish: "IE",
+  jamaican: "JM",
+  kenyan: "KE",
+  malaysian: "MY",
+  norwegian: "NO",
+  polish: "PL",
+  portuguese: "PT",
+  russian: "RU",
+  ukrainian: "UA",
+  uruguayan: "UY",
+  venezuelan: "VE",
 };
 
 
@@ -153,6 +175,16 @@ export const MEAL_TIME_IMAGES = {
   Dessert: "/images/mymeals/DESSERT.webp",
   Appetizer: "/images/mymeals/appetizer.jpg",
 };
+export const CATEGORY_IMAGES = {
+  dairy: "/images/categories/dairy.png",
+  meat: "/images/categories/meat.png",
+  grain: "/images/categories/grains.png",
+  bread: "/images/categories/bread.png",
+  other: "/images/categories/other.png",
+  vegetable: "/images/categories/vegetables.png",
+  fruit: "/images/categories/fruits.png",
+};
+
 
 export const DEFAULT_MEAL_IMAGE = "/images/mymeals/default.webp";
 
