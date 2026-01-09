@@ -20,24 +20,44 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 
+
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from payments.views import paymob_webhook
 
 
 schema_view = get_schema_view(
     openapi.Info(
         title="GreenBite API",
         default_version="v1",
-        description="API documentation with Djoser & JWT",
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
+    patterns=[
+        path("api/", include("subscriptions.urls")),
+        path("auth/", include("djoser.urls")),
+        path("auth/", include("djoser.urls.jwt")),
+        re_path(r"^api/webhook/?$", paymob_webhook), # (handles both /api/webhook and /api/webhook/)
+        path("api/", include("payments.urls")),
+        path("admin/", admin.site.urls),
+
+        
+        path('api/', include('recipes.urls')),
+        path("api/", include("accounts.urls")),
+        path('api/meal_plans/', include('meal_plans.urls')),
+        path("api/", include("subscriptions.urls")),
+    ],
 )
 
 
+
 urlpatterns = [
+    # Accept webhook with or without trailing slash (Paymob may call either)
+    re_path(r"^api/webhook/?$", paymob_webhook), # (handles both /api/webhook and /api/webhook/)
+    path("api/", include("payments.urls")),
     path("admin/", admin.site.urls),
+
 
     # Djoser endpoints
     path("auth/", include("djoser.urls")),
@@ -48,6 +68,7 @@ urlpatterns = [
     path('api/', include('recipes.urls')),
     path("api/", include("accounts.urls")),
     path('api/meal_plans/', include('meal_plans.urls')),
+    path("api/", include("subscriptions.urls")),
     path("api/community/", include("community.urls")),
 
     # Swagger

@@ -2,7 +2,7 @@ from datetime import timedelta, date
 from decimal import Decimal
 from django.db import models
 from django.utils import timezone
-
+from django.conf import settings
 from project.utils.normalize import normalize_ingredient_name
 from django.core.validators import MinValueValidator
 from django.conf import settings
@@ -33,7 +33,7 @@ class MealTime(models.TextChoices):
     APPETIZER = 'appetizer', 'Appetizer'
 
 class Meal(models.Model):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     recipe = models.TextField()
     ingredients = models.JSONField()
     steps = models.JSONField(default=list, blank=True)
@@ -114,7 +114,7 @@ class Meal(models.Model):
         verbose_name_plural = "Meals"
 
 class FoodLogSys(models.Model):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.CASCADE, related_name="food_logs")
     name = models.CharField(max_length=100)
     quantity = models.DecimalField(
@@ -166,7 +166,7 @@ class FoodLogSys(models.Model):
 
 #input get it from ai and make crud operation 
 class WasteLog(models.Model):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="waste_logs")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="waste_logs")
     meal = models.ForeignKey(Meal, null=True, blank=True, on_delete=models.CASCADE, related_name="waste_logs")
 
     name = models.CharField(max_length=100)
@@ -200,7 +200,7 @@ class WasteLog(models.Model):
         verbose_name_plural = "Waste Logs"
 
 class FoodLogUsage(models.Model):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     recipe = models.ForeignKey(
         "recipes.MealDBRecipe",
         on_delete=models.CASCADE,

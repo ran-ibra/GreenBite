@@ -4,7 +4,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.fields import ArrayField
-
+from django.conf import settings
 from project.utils.normalize import normalize_ingredient_name
 
 
@@ -93,7 +93,7 @@ class MealDBRecipe(models.Model):
 
 
 class RecipeFavorite(models.Model):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="recipe_favorites")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recipe_favorites")
     recipe = models.ForeignKey(MealDBRecipe, on_delete=models.CASCADE, related_name="favorites")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -108,7 +108,7 @@ class RecipeFavorite(models.Model):
 
 
 class RecipeReview(models.Model):
-    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="recipe_reviews")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recipe_reviews")
     recipe = models.ForeignKey(MealDBRecipe, on_delete=models.CASCADE, related_name="reviews")
 
     rating = models.PositiveSmallIntegerField(

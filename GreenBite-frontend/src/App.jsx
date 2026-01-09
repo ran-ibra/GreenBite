@@ -26,9 +26,9 @@ import Settings from "./pages/user/Settings";
 import MealPlansListPage from "./pages/HomePages/MealPlans/MealPlansListPage";
 import GenerateMealPlanPage from "./pages/HomePages/MealPlans/MealPlanPage";
 import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
+import Pricing from "./pages/Pricing/Pricing";
+import PaymentResult from "@/pages/payment/PaymentResult";
 import Marketplace from "./pages/HomePages/Market/MarketPage";
-
-
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +61,9 @@ function App() {
                 element={<ResetPassword />}
               />
             </Route>
+
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/payment/result" element={<PaymentResult />} />
 
             <Route element={<ProtectedRoute />}>
               {/* /User */}

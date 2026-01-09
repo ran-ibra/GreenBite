@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'django_filters',
     'django_celery_results',
+    "django_celery_beat",
 
 
     # apps
@@ -70,7 +71,8 @@ INSTALLED_APPS = [
     "food",
     "recipes",
     "meal_plans",
-    'community',
+    "payments",
+    "subscriptions.apps.SubscriptionsConfig",    'community',
 ]
 SITE_ID = 1
 
@@ -131,6 +133,7 @@ DJOSER = {
 
     "SERIALIZERS": {
         "user_create": "accounts.serializers.user.UserCreateSerializer",
+        
         "current_user": "accounts.serializers.user.UserMeSerializer",
         "user_create_password_retype": "accounts.serializers.user.UserCreateSerializer",
     },
@@ -150,6 +153,42 @@ CACHES = {
     }
 }
 
+# ==============
+# Paymob
+# ==============
+
+PAYMOB_SECRET_KEY = os.getenv("PAYMOB_SECRET_KEY")
+PAYMOB_PUBLIC_KEY = os.getenv("PAYMOB_PUBLIC_KEY")
+PAYMOB_INTEGRATION_ID = os.getenv("PAYMOB_INTEGRATION_ID")
+PAYMOB_BASE_URL = "https://accept.paymob.com"
+PAYMOB_WEBHOOK_URL = os.getenv("PAYMOB_WEBHOOK_URL")
+PAYMOB_REDIRECT_URL = os.getenv("PAYMOB_REDIRECT_URL")
+PAYMOB_HMAC_SECRET = os.getenv("PAYMOB_HMAC_SECRET")
+
+# ==============
+# Logger
+# ==============
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "payments": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
+
+# ==============
+# Email
+# ==============
+
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -163,6 +202,18 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 
+# ==============
+# Swagger
+# ==============
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,
+    "DEFAULT_AUTO_SCHEMA_CLASS": "drf_yasg.inspectors.SwaggerAutoSchema",
+    "VALIDATOR_URL": None,  
+}
+
+# ==============
+# CORS
+# ==============
 
 CORS_ALLOW_ALL_ORIGINS = True
 AUTH_USER_MODEL = 'accounts.User'
@@ -172,7 +223,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',   
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'project.middleware.block_get_body.BlockGetBodyMiddleware',
+    # 'project.middleware.block_get_body.BlockGetBodyMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
