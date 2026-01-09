@@ -6,5 +6,4 @@ class SubscriptionsConfig(AppConfig):
     name = 'subscriptions'
 
     def ready(self):
-        from .signals import setup_periodic_tasks
-        setup_periodic_tasks()
+        pass

@@ -9,7 +9,7 @@ from ..serializers import FoodLogSysSerializer
 from ..filters import FoodLogFilter 
 from ..utils.caching import bump_list_version, detail_key, list_key, invalidate_cache
 from ..pagination import FoodLogPagination
-
+from meal_plans.services.inventory import InventoryService
 NAMESPACE = "foodlog"
 SORTABLE_FIELDS = {"name", "category", "storage_type", "quantity", "expiry_date"}
 DUAL_SORT_FIELDS = {"quantity", "expiry_date"}

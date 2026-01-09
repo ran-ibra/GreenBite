@@ -31,11 +31,25 @@ schema_view = get_schema_view(
     openapi.Info(
         title="GreenBite API",
         default_version="v1",
-        description="API documentation with Djoser & JWT",
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
+    patterns=[
+        path("api/", include("subscriptions.urls")),
+        path("auth/", include("djoser.urls")),
+        path("auth/", include("djoser.urls.jwt")),
+        re_path(r"^api/webhook/?$", paymob_webhook), # (handles both /api/webhook and /api/webhook/)
+        path("api/", include("payments.urls")),
+        path("admin/", admin.site.urls),
+
+        
+        path('api/', include('recipes.urls')),
+        path("api/", include("accounts.urls")),
+        path('api/meal_plans/', include('meal_plans.urls')),
+        path("api/", include("subscriptions.urls")),
+    ],
 )
+
 
 
 urlpatterns = [
@@ -53,7 +67,9 @@ urlpatterns = [
     path("api/", include("food.urls")),
     path('api/', include('recipes.urls')),
     path("api/", include("accounts.urls")),
-    
+    path('api/meal_plans/', include('meal_plans.urls')),
+    path("api/", include("subscriptions.urls")),
+
     # Swagger
     re_path(
         r"^swagger(?P<format>\.json|\.yaml)$",

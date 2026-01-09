@@ -12,6 +12,8 @@ export default function AddLeftoversDialog({ open, onClose, meal, onSaved }) {
         // Invalidate meals list
         queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
 
+        queryClient.invalidateQueries({ queryKey: ["foodLog"], exact: false });
+
         // Notify parent dialog for instant update
         onSaved?.(response.data.leftovers);
 

@@ -23,7 +23,7 @@ def create_payment_intention(
     }
 
     payload = {
-        "amount": amount,  # 👈 بالجنيه زي Postman
+        "amount": amount,  
         "currency": "EGP",
         "payment_methods": [
             int(settings.PAYMOB_INTEGRATION_ID)
@@ -108,7 +108,7 @@ def verify_paymob_hmac(received_hmac, data):
         hashlib.sha512
     ).hexdigest()
 
-    # Debug output (keep at debug level)
+    # Debug output 
     logger.debug("PAYMOB CONCAT: %s", concatenated)
     logger.debug("CALC HMAC: %s", calculated_hmac)
     logger.debug("RECV HMAC: %s", received_hmac)

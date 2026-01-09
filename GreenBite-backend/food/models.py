@@ -5,6 +5,8 @@ from django.utils import timezone
 from django.conf import settings
 from project.utils.normalize import normalize_ingredient_name
 from django.core.validators import MinValueValidator
+from django.conf import settings
+
 
 
 class CategoryChoices(models.TextChoices):
@@ -52,6 +54,11 @@ class Meal(models.Model):
     consumed_at = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    source_mealdb_id = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
     
     def __str__(self):
         return f"{self.user.username}'s {self.get_mealTime_display()} - {self.consumed_at.date()}"
@@ -194,7 +201,23 @@ class WasteLog(models.Model):
 
 class FoodLogUsage(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    recipe = models.ForeignKey("recipes.MealDBRecipe", on_delete=models.CASCADE)
+    recipe = models.ForeignKey(
+        "recipes.MealDBRecipe",
+        on_delete=models.CASCADE,
+        related_name="foodlog_usages",
+        null=True,
+        blank=True,
+    )
+
+    # ✅ MAP EXISTING DB COLUMN meal_id (do NOT create a new column)
+    meal = models.ForeignKey(
+        "food.Meal",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="meal_id",
+        related_name="foodlog_usages",
+    )
     foodlog = models.ForeignKey("food.FoodLogSys", on_delete=models.CASCADE)
     used_quantity = models.DecimalField(max_digits=10, decimal_places=2)
     used_at = models.DateTimeField(auto_now_add=True)
@@ -208,3 +231,35 @@ class FoodLogUsage(models.Model):
         ]
     def __str__(self):
         return f"FoodLogUsage(user={self.user_id}, recipe={self.recipe_id}, foodlog={self.foodlog_id}, used_quantity={self.used_quantity})"
+class FoodSafetyScanJob(models.Model):
+    STATUS_PENDING = "PENDING"
+    STATUS_RUNNING = "RUNNING"
+    STATUS_SUCCESS = "SUCCESS"
+    STATUS_FAILED = "FAILED"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_RUNNING, "Running"),
+        (STATUS_SUCCESS, "Success"),
+        (STATUS_FAILED, "Failed"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="food_safety_scan_jobs")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING)
+
+    # store only a temp path; file will be deleted by worker
+    image_path = models.TextField(blank=True, default="")
+    # MinIO/S3 key (where the file lives)
+    image_key = models.TextField(blank=True, default="")
+    # request context
+    food_name = models.CharField(max_length=255, blank=True, default="")
+    storage = models.CharField(max_length=255, blank=True, default="")
+    opened_days = models.CharField(max_length=64, blank=True, default="")
+    notes = models.TextField(blank=True, default="")
+
+    # result
+    result = models.JSONField(null=True, blank=True)
+    error = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

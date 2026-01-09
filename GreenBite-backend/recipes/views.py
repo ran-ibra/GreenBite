@@ -1,24 +1,22 @@
 import json
 import random
 from decimal import Decimal
-
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Func, Value
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.cache import cache
-
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from rest_framework.decorators import permission_classes
 
 from food.models import FoodLogSys, FoodLogUsage
 from food.utils.caching import list_key, detail_key, get_list_version
-from recipes.models import MealDBRecipe
+from recipes.models import MealDBRecipe, RecipeFavorite
 from recipes.serializers import ConsumePreviewSerializer, ConsumeConfirmSerializer
 
 # OpenAI is optional fallback
@@ -116,7 +114,7 @@ class RecommendRecipesAPIView(APIView):
             "thumbnail",
             "category",
             "cuisine",
-            "ingredients_norm",
+            "ingredient_tokens",
             "meal_time",
             "difficulty",
             "instructions",
@@ -127,7 +125,7 @@ class RecommendRecipesAPIView(APIView):
         # Prefer DB overlap filter if supported; else fallback
         try:
             candidates_qs = candidates_qs.extra(
-                where=["ingredients_norm::varchar[] && %s::varchar[]"],
+                where=["ingredient_tokens::jsonb ?| %s"],
                 params=[inv_norms],
             )[:400]
         except Exception:
@@ -135,7 +133,7 @@ class RecommendRecipesAPIView(APIView):
 
         candidates_scored = []
         for r in candidates_qs:
-            ing_norms = r.ingredients_norm or []
+            ing_norms = r.ingredient_tokens or []
             ing_set = set(ing_norms)
 
             matched = list(ing_set & inv_set)
@@ -155,7 +153,7 @@ class RecommendRecipesAPIView(APIView):
                     "cuisine": r.cuisine,
                     "meal_time": r.meal_time,
                     "difficulty": r.difficulty,
-                    "ingredients_norm": list(ing_set)[:30],
+                    "ingredient_tokens": list(ing_set)[:30],
                     "match_count": match_count,
                     "min_days_left": min_days,
                 }
@@ -190,7 +188,7 @@ class RecommendRecipesAPIView(APIView):
                         {
                             "recipe_id": c["recipe_id"],
                             "title": c["title"],
-                            "ingredients_norm": c["ingredients_norm"],
+                            "ingredient_tokens": c["ingredient_tokens"],
                             "match_count": c["match_count"],
                             "min_days_left": c["min_days_left"],
                             "meal_time": c["meal_time"],
@@ -249,7 +247,7 @@ class RecommendRecipesAPIView(APIView):
 
         out = []
         for r in ordered:
-            ing_norms = r.ingredients_norm or []
+            ing_norms = r.ingredient_tokens or []
             matched = [n for n in ing_norms if n in inv_days]
 
             expiring_soon = sorted(
@@ -298,7 +296,7 @@ class ConsumePreviewAPIView(APIView):
         recipe = get_object_or_404(MealDBRecipe, id=s.validated_data["recipe_id"])
 
         today = timezone.now().date()
-        recipe_norms = sorted(set([x for x in (recipe.ingredients_norm or []) if x]))
+        recipe_norms = sorted(set([x for x in (recipe.ingredient_tokens or []) if x]))
 
         logs = FoodLogSys.objects.filter(
             user=request.user,
@@ -354,7 +352,7 @@ class ConsumeConfirmAPIView(APIView):
         items = s.validated_data["items"]
 
         recipe = get_object_or_404(MealDBRecipe, id=recipe_id)
-        recipe_norms = set(recipe.ingredients_norm or [])
+        recipe_norms = set(recipe.ingredient_tokens or [])
 
         ids = [x["foodlog_id"] for x in items]
         with transaction.atomic():
@@ -394,8 +392,6 @@ class ConsumeConfirmAPIView(APIView):
                     used_quantity=used_qty,
                 )
 
-        # NOTE: make sure your FoodLog endpoints bump_list_version("foodlog", user_id)
-        # so recommendation cache is invalidated automatically.
 
         return Response(
             {"detail": "Consumption recorded successfully"},
@@ -440,10 +436,7 @@ def mealdb_random(request):
 
 @api_view(["GET"])
 def mealdb_detail(request, mealdb_id: str):
-    """
-    GET /recipes/mealdb/<mealdb_id>/
-    Returns full details.
-    """
+    
     # Optional: cache this because it’s pure DB read (safe)
     ck = detail_key(MEALDB_DETAIL_NAMESPACE, 0, int(_safe_int_hash(mealdb_id)))
     cached = cache.get(ck)
@@ -470,3 +463,38 @@ def mealdb_detail(request, mealdb_id: str):
 
     cache.set(ck, data, timeout=60 * 10)  # 10 minutes
     return Response(data, status=status.HTTP_200_OK)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_to_favorites(request):
+
+    recipe_id = request.data.get("recipe_id")
+    mealdb_id = request.data.get("mealdb_id")
+
+    if not recipe_id and not mealdb_id:
+        return Response(
+            {"detail": "Provide either 'recipe_id' or 'mealdb_id'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Fetch the recipe
+    if recipe_id:
+        recipe = get_object_or_404(MealDBRecipe, id=recipe_id)
+    else:
+        recipe = get_object_or_404(MealDBRecipe, mealdb_id=str(mealdb_id).strip())
+
+    # Create favorite safely (no duplicates)
+    favorite, created = RecipeFavorite.objects.get_or_create(
+        user=request.user,
+        recipe=recipe,
+    )
+
+    if not created:
+        return Response(
+            {"detail": "Recipe is already in favorites"},
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(
+        {"detail": "Recipe added to favorites", "favorite_id": favorite.id},
+        status=status.HTTP_201_CREATED,
+    )

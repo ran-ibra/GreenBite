@@ -1,5 +1,43 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+export function useDialogone(initial = []) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [data, setData] = useState(initial);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const open = useCallback(async (fetcherOrData, index = 0) => {
+    setIsOpen(true);
+    setActiveIndex(index);
+    setError(null);
+
+    // if you pass direct data
+    if (typeof fetcherOrData !== "function") {
+      setData(fetcherOrData);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetcherOrData();
+      setData(res);
+    } catch (e) {
+      setError(e);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setLoading(false);
+    setError(null);
+  }, []);
+
+  return { isOpen, open, close, data, activeIndex, setActiveIndex, loading, error };
+}
 export default function useDialog(initialOpen = false) {
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [activeIndex, setActiveIndex] = useState(0);

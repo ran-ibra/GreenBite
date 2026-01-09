@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'djoser',
     'drf_yasg',
     'django_filters',
+    'django_celery_results',
     "django_celery_beat",
 
 
@@ -69,6 +70,7 @@ INSTALLED_APPS = [
     "project",  
     "food",
     "recipes",
+    "meal_plans",
     "payments",
     "subscriptions.apps.SubscriptionsConfig",]
 SITE_ID = 1
@@ -95,6 +97,12 @@ REST_FRAMEWORK = {
     }
 }
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "http://minio:9000")
+S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "minioadmin")
+S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "minioadmin")
+S3_REGION = os.getenv("S3_REGION", "us-east-1")
+S3_BUCKET_FOOD_SCANS = os.getenv("S3_BUCKET_FOOD_SCANS", "greenbite-food-scans")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -186,7 +194,25 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/1"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
 
+# ==============
+# Swagger
+# ==============
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,
+    "DEFAULT_AUTO_SCHEMA_CLASS": "drf_yasg.inspectors.SwaggerAutoSchema",
+    "VALIDATOR_URL": None,  
+}
+
+# ==============
+# CORS
+# ==============
 
 CORS_ALLOW_ALL_ORIGINS = True
 AUTH_USER_MODEL = 'accounts.User'

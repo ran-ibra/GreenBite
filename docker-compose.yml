@@ -12,6 +12,76 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_NAME=greenbite
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/1
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_REGION=us-east-1
+      - S3_BUCKET_FOOD_SCANS=greenbite-food-scans
+      - S3_ACCESS_KEY_ID=minioadmin
+      - S3_SECRET_ACCESS_KEY=minioadmin
+      - RUN_MIGRATIONS=1
+      - BOOTSTRAP_ONCE=1
+      - IMPORT_MEALDB=1
+      - TOKENIZE_INGREDIENTS=1
+      - BUILD_EMBEDDINGS=1
+      - MEALDB_LIMIT=0
+      - MEALDB_SLEEP=0.25
+      - TOKENS_BATCH_SIZE=300
+      - TOKENS_LIMIT=0
+
+  celery:
+    build: ./GreenBite-backend
+    container_name: greenbite-celery
+    command: celery -A project worker --loglevel=info
+    volumes:
+      - ./GreenBite-backend:/app
+    env_file:
+      - ./GreenBite-backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_NAME=greenbite
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - S3_ENDPOINT_URL=http://minio:9000
+      - S3_REGION=us-east-1
+      - S3_BUCKET_FOOD_SCANS=greenbite-food-scans
+      - S3_ACCESS_KEY_ID=minioadmin
+      - S3_SECRET_ACCESS_KEY=minioadmin
+      - REDIS_URL=redis://redis:6379/1
+      - RUN_MIGRATIONS=1
+      - RUN_MAKEMIGRATIONS_MERGE=0
+      - BOOTSTRAP_ONCE=1
+      - IMPORT_MEALDB=0
+      - TOKENIZE_INGREDIENTS=0
+      - EMBED_MEALS=1
+
+  # ✅ الإضافة الوحيدة
+  celery-beat:
+    build: ./GreenBite-backend
+    container_name: greenbite-celery-beat
+    command: celery -A project beat --loglevel=info
+    volumes:
+      - ./GreenBite-backend:/app
+    env_file:
+      - ./GreenBite-backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       - DB_NAME=greenbite
       - DB_USER=postgres
@@ -49,6 +119,19 @@ services:
       timeout: 3s
       retries: 10
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
