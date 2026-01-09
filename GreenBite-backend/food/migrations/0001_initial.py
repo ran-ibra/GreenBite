@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('recipes', '0005_alter_mealdbrecipe_ingredient_tokens'),
+        ('recipes', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -79,6 +79,7 @@ class Migration(migrations.Migration):
                 ('name_normalized', models.CharField(blank=True, db_index=True, default='', max_length=120)),
                 ('is_consumed', models.BooleanField(db_index=True, default=False)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('meal', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='food_logs', to='food.meal')),
                 ('meal', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='food_logs', to='food.meal')),
             ],
             options={
