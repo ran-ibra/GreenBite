@@ -69,6 +69,7 @@ urlpatterns = [
     path("api/", include("accounts.urls")),
     path('api/meal_plans/', include('meal_plans.urls')),
     path("api/", include("subscriptions.urls")),
+    path("api/community/", include("community.urls")),
 
     # Swagger
     re_path(

@@ -5,7 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
-import DashBoardPage from "./pages/HomePages/DashBoardHome";
+import DashBoardHome from "./pages/HomePages/DashBoardHome";
 import HomeLayout from "./layouts/HomeLayout";
 import RegisterPage from "./pages/RegisterPage";
 import EmailVerification from "./pages/EmailVerification";
@@ -28,6 +28,7 @@ import GenerateMealPlanPage from "./pages/HomePages/MealPlans/MealPlanPage";
 import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
 import Pricing from "./pages/Pricing/Pricing";
 import PaymentResult from "@/pages/payment/PaymentResult";
+import Marketplace from "./pages/HomePages/Market/MarketPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,7 +73,7 @@ function App() {
               {/* --------------------------------------- */}
               <Route path="/home" element={<HomeLayout />}>
                 {/* /home */}
-                <Route index element={<MyMealsPage />} />
+                <Route index element={<DashBoardHome />} />
 
                 {/* /home/foodlog */}
                 <Route path="foodlog">
@@ -94,6 +95,9 @@ function App() {
                   <Route index element={<MealPlansListPage />} />
                   <Route path="generate" element={<GenerateMealPlanPage />} />
                   <Route path=":id" element={<MealPlanDetailPage />} />
+                </Route>
+                <Route path="marketplace">
+                  <Route index element={<Marketplace />} />
                 </Route>
               </Route>
             </Route>
