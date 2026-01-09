@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CUISINE_COUNTRY_MAP, getCuisineVisuals } from "@/utils/constants";
 import { getRandomRecipe } from "@/api/mealdb.api";
 import MenuCard from "../RightMenu/RecommendedMenu/MenuCard";
+import MealDbDetailsDialog from "../Dialogs/MealdbDetailsDialog";
 
 import "swiper/css";
 
@@ -13,6 +14,21 @@ const MyCarousel = () => {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [activeMealdbId, setActiveMealdbId] = useState(null);
+
+  const openDetails = (mealdbId) => {
+    setActiveMealdbId(mealdbId);
+    setDetailsOpen(true);
+  };
+
+  const closeDetails = () => {
+    setDetailsOpen(false);
+    setActiveMealdbId(null);
+  };
+
+
 
   const fetchRecipes = async () => {
     try {
@@ -94,6 +110,7 @@ const MyCarousel = () => {
                   error={!loading && !recipe ? error : ""}
                   onRefresh={fetchRecipes}
                   onAdd={() => {}}
+                  onOpenDetails={() => openDetails(recipe.mealdb_id)}
                   cuisineVisuals={cuisineVisuals}
                 />
               </SwiperSlide>
@@ -106,6 +123,11 @@ const MyCarousel = () => {
       {!loading && error ? (
         <p className="mt-2 text-xs text-red-600">{error}</p>
       ) : null}
+      <MealDbDetailsDialog
+        isOpen={detailsOpen}
+        onClose={closeDetails}
+        mealdbId={activeMealdbId}
+      />
     </div>
   );
 };

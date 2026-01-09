@@ -10,3 +10,4 @@ export async function getRandomRecipe() {
   const res = await api.get("/api/mealdb/random/?n=8");
   return res.data;
 }
+

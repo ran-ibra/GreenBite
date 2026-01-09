@@ -1,6 +1,6 @@
 import React from "react";
 import ReactCountryFlag from "react-country-flag";
-import { FaPlus } from "react-icons/fa6";
+import { FaInfoCircle } from "react-icons/fa";
 
 const CARD_HEIGHT = "h-[140px]";
 
@@ -9,8 +9,8 @@ const MenuCard = ({
   loading,
   error,
   onRefresh,
-  onAdd,
-  cuisineVisuals, // pass this from parent (same as RecipeCard.jsx usage)
+  cuisineVisuals, 
+  onOpenDetails,
 }) => {
   const safeRecipe = recipe ?? {};
   const title = safeRecipe.title || "-";
@@ -92,11 +92,11 @@ const MenuCard = ({
 
             <button
               type="button"
-              onClick={onAdd}
+              onClick={onOpenDetails}
               className="w-9 h-9 bg-lime-300 rounded-md flex items-center justify-center flex-shrink-0"
-              aria-label="Add"
+              aria-label="Open meal details"
             >
-              <FaPlus className="w-4 h-4" />
+              <FaInfoCircle className="w-4 h-4" />
             </button>
           </div>
 
