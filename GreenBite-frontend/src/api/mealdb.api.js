@@ -5,6 +5,13 @@ export const getMealdbRecipeById = async (mealdbId) => {
   return res.data;
 };
 
+//random recipe for the right menu
+export async function getRandomRecipe() {
+  const res = await api.get("/api/mealdb/random/?n=8");
+  return res.data;
+}
+
+
 export const getRecommendedRecipes = async (limit = 5) => {
   const res = await api.get("/api/recipes/recommend/", { params: { limit } });
   return res.data;

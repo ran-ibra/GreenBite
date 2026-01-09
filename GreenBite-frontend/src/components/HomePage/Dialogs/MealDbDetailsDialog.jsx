@@ -1,0 +1,141 @@
+import { useQuery } from "@tanstack/react-query";
+import { X } from "lucide-react";
+import { getMealdbRecipeById } from "@/api/mealdb.api";
+import { saveMeal } from "@/api/recipes.api";
+import useSaveMeal from "@/hooks/useSaveMeals";
+import { mapMealDbFromBackend,formatIngredient, instructionsToSteps, buildSavePayloadFromMealDb } from "@/utils/mealdb.mapper";
+import {useNavigate} from "react-router-dom";
+
+export default function MealDbDetailsDialog({ isOpen, onClose, mealdbId }) {
+  const saveMealMutation = useSaveMeal(mealdbId);
+
+  const handleSave = () => {
+    saveMealMutation.mutate(buildSavePayloadFromMealDb(data), {
+        onSuccess: () => {
+        onClose();
+        navigate("/home");
+        },
+    });
+    };
+  
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["mealdb", mealdbId],
+    queryFn: async () => {
+      const raw = await getMealdbRecipeById(mealdbId);
+      return mapMealDbFromBackend(raw);
+    },
+    enabled: isOpen && !!mealdbId,
+    staleTime: 2 * 60 * 1000,
+  });
+  const navigate = useNavigate;
+  if (!isOpen) return null;
+  
+  const steps = instructionsToSteps(data?.instructions);
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-9999 flex items-center justify-center">
+      <div className="bg-white rounded-2xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto z-10000">
+        {/* Header */}
+        <div className="relative mb-4">
+          <h2 className="text-xl font-bold text-center">
+            {data?.title || "Meal details"}
+          </h2>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-0 top-0 text-gray-500 hover:text-red-500"
+            aria-label="Close"
+            title="Close"
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        {/* Loading / Error */}
+        {isLoading ? (
+          <p className="text-center text-sm text-gray-600">Loading...</p>
+        ) : isError ? (
+          <p className="text-center text-sm text-red-600">
+            Failed to load meal details.
+          </p>
+        ) : !data ? (
+          <p className="text-center text-sm text-gray-600">No data.</p>
+        ) : (
+          <>
+            {/* Image */}
+            {data.thumbnail ? (
+              <img
+                src={data.thumbnail}
+                alt={data.title}
+                className="w-full h-64 object-cover rounded-xl mb-4"
+              />
+            ) : null}
+
+            {/* Meta chips */}
+            <div className="flex flex-wrap gap-2 mb-6 justify-center">
+              {data.category ? (
+                <span className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                  {data.category}
+                </span>
+              ) : null}
+
+              {data.cuisine ? (
+                <span className="px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                  {data.cuisine}
+                </span>
+              ) : null}
+
+              {Array.isArray(data.tags) && data.tags.length > 0 ? (
+                <span className="px-3 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700">
+                  {data.tags.join(" • ")}
+                </span>
+              ) : null}
+            </div>
+
+            {/* Ingredients */}
+            <h3 className="font-semibold mb-2">Ingredients</h3>
+            <ul className="list-disc pl-6 mb-6 text-sm">
+            {(data?.ingredients || []).map((i, idx) => (
+                <li key={idx}>{formatIngredient(i) || "—"}</li>
+            ))}
+            </ul>
+
+            {/* Instructions */}
+
+            <h3 className="font-semibold mb-2">Steps</h3>
+            {steps.length === 0 ? (
+            <p className="text-sm text-gray-500">No steps found.</p>
+            ) : (
+            <ul className="list-disc pl-6 mb-6 text-sm">
+                {steps.map((s, idx) => (
+                <li key={idx}>{s}</li>
+                ))}
+            </ul>
+            )}
+            <button
+            type="button"
+            onClick={() => saveMealMutation.mutate(buildSavePayloadFromMealDb(data), {
+                onSuccess: () => {
+                    onClose();
+                    navigate("/home");
+                },
+                })
+            }
+            disabled={saveMealMutation.isPending}
+            className="px-6 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+            >
+            {saveMealMutation.isPending ? "Saving..." : "Save meal"}
+            </button>
+
+            {saveMealMutation.isError ? (
+            <p className="text-xs text-red-600 mt-2">
+                {saveMealMutation.error?.message || "Save failed"}
+            </p>
+            ) : null}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
