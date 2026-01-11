@@ -1,109 +1,91 @@
 import { useReducer, useEffect, useState } from 'react';
-import { Store, Plus, RefreshCw } from 'lucide-react';
-import  Button  from '@/components/ui/Button';
+import { Store, Plus } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import ListingCard from './ListingCard';
 import MarketplaceFilters from './FiltersMarket';
 import ListingDetailsDialog from '@/components/marketplace/dialog/listingDetails';
-import CreateListingDialog from '@/components/marketplace/dialog/listingDialog';
-// import OrderDialog from './OrderDialog';/
-// import ReviewDialog from './ReviewDialog';
-// import ReportDialog from './ReportDialog';
+import CreateListingDialog from '@/components/marketplace/dialog/CreatelistingDialog';
+import EditListingDialog from '@/components/marketplace/dialog/EditListingDialog';
 import { marketplaceReducer, initialMarketplaceState, MARKETPLACE_ACTIONS } from '@/reducers/marketplaceReducer';
 import { useAuth } from '@/context/AuthProvider';
-
-
-// Mock data for now - will be replaced with API calls
-const mockListings = [
-  {
-    id: '1',
-    title: 'Homemade Chocolate Chip Cookies',
-    description: 'Delicious homemade cookies made with premium chocolate chips.',
-    price: 150,
-    currency: 'EGP',
-    quantity: 2,
-    unit: 'kg',
-    status: 'Active',
-    featured_image: null,
-    available_until: '2026-01-20',
-    seller: { id: '2', name: 'Fatma', trust_score: 4.6 },
-    average_rating: 4.5,
-    review_count: 12,
-  },
-  {
-    id: '2',
-    title: 'Fresh Organic Vegetables',
-    description: 'Freshly picked organic vegetables from local farms.',
-    price: 80,
-    currency: 'EGP',
-    quantity: 5,
-    unit: 'kg',
-    status: 'Active',
-    featured_image: null,
-    available_until: '2026-01-15',
-    seller: { id: '3', name: 'Ahmed', trust_score: 4.8 },
-    average_rating: 4.8,
-    review_count: 24,
-  },
-  {
-    id: '3',
-    title: 'Homemade Jam',
-    description: 'Traditional homemade jam with natural ingredients.',
-    price: 120,
-    currency: 'EGP',
-    quantity: 3,
-    unit: 'jar',
-    status: 'Active',
-    featured_image: null,
-    available_until: '2026-02-01',
-    seller: { id: '4', name: 'Sara', trust_score: 4.2 },
-    average_rating: 4.2,
-    review_count: 8,
-  },
-];
+import { getListings } from '@/api/marketplace.api';
+import { toast } from 'react-hot-toast';
+import { useListings } from "@/hooks/uselistings";
 
 const MarketplaceListings = () => {
   const [state, dispatch] = useReducer(marketplaceReducer, initialMarketplaceState);
   const { listings, loading, error, filters } = state;
-  const { user, isSeller, toggleRole } = useAuth();
+  const { user, isSubscribed } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const isSeller = user?.role === "seller";
+
+  const { fetchListings, create, update, remove } = useListings();
+
+  const canCreateListing = Boolean((isSubscribed ) || isAdmin);
 
   // Dialog states
   const [selectedListing, setSelectedListing] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [orderOpen, setOrderOpen] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
-    // Simulate API fetch with filters
-    dispatch({ type: MARKETPLACE_ACTIONS.SET_LOADING, payload: true });
+    let cancelled = false;
 
-    // Filter mock data based on filters
-    let filtered = [...mockListings];
+    const load = async () => {
+      dispatch({ type: MARKETPLACE_ACTIONS.SET_LOADING, payload: true });
+      dispatch({ type: MARKETPLACE_ACTIONS.SET_ERROR, payload: null });
 
-    if (filters.search) {
-      filtered = filtered.filter((l) =>
-        l.title.toLowerCase().includes(filters.search.toLowerCase())
-      );
-    }
+      try {
+        const data = await getListings({
+          page: 1,
+          pageSize: 12,
+          search: filters.search || undefined,
+          minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+          maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+          sellerId: filters.sellerId || undefined,
+        });
 
-    if (filters.minPrice) {
-      filtered = filtered.filter((l) => l.price >= Number(filters.minPrice));
-    }
+        if (cancelled) return;
 
-    if (filters.maxPrice) {
-      filtered = filtered.filter((l) => l.price <= Number(filters.maxPrice));
-    }
+        const rawResults = Array.isArray(data) ? data : (data?.results ?? []);
+        const count = Array.isArray(data) ? data.length : (data?.count ?? rawResults.length);
 
-    // Simulate network delay
-    setTimeout(() => {
-      dispatch({
-        type: MARKETPLACE_ACTIONS.SET_LISTINGS,
-        payload: { results: filtered, count: filtered.length },
-      });
-    }, 300);
-  }, [filters]);
+        // Normalize backend fields to what UI expects
+        const results = rawResults.map((l) => ({
+          ...l,
+          featured_image: l.featured_image_url ?? null, // used by ListingCard + ListingDetailsDialog
+          seller: {
+            ...l.seller,
+            name: l.seller?.name ?? l.seller?.email ?? "Unknown",
+            trust_score: l.seller?.trust_score ?? 0,
+          },
+        }));
+
+        dispatch({
+          type: MARKETPLACE_ACTIONS.SET_LISTINGS,
+          payload: { results, count },
+        });
+      } catch (e) {
+        if (cancelled) return;
+        const msg =
+          e?.response?.data?.detail ||
+          e?.message ||
+          "Failed to load marketplace listings.";
+        dispatch({ type: MARKETPLACE_ACTIONS.SET_ERROR, payload: msg });
+      } finally {
+        if (!cancelled) {
+          dispatch({ type: MARKETPLACE_ACTIONS.SET_LOADING, payload: false });
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [filters.search, filters.minPrice, filters.maxPrice, filters.sellerId]);
 
   // Handlers
   const handleViewDetails = (listing) => {
@@ -126,30 +108,52 @@ const MarketplaceListings = () => {
     setReportOpen(true);
   };
 
-  const handleDelete = (listing) => {
-    console.log('Delete listing:', listing.id);
-    toast.success('Listing deleted successfully');
+  const refreshListings = async () => {
+    const { results, count } = await fetchListings(filters);
+    dispatch({ type: MARKETPLACE_ACTIONS.SET_LISTINGS, payload: { results, count } });
+  };
+
+  const handleDelete = async (listing) => {
+    console.log("[handleDelete] clicked:", listing?.id);
+  try {
+    await remove(listing.id);
     setDetailsOpen(false);
+    await refreshListings();
+  } catch (e) {
+    // toast already in hook
+  }
   };
 
-  const handleCreateListing = async (data) => {
-    console.log('Create listing:', data);
-    toast.success('Listing created successfully');
+  const handleOpenCreate = () => {
+    if (!canCreateListing) {
+      toast.error("You need to subscribe first to create a listing.");
+      return;
+    }
+    setCreateOpen(true);
   };
 
-  const handleSubmitOrder = async (data) => {
-    console.log('Submit order:', data);
-    toast.success('Order placed successfully!');
+  const handleCreate = async (payload) => {
+    try {
+      await create(payload);
+      setCreateOpen(false);
+      await refreshListings();
+    } catch (e) {}
   };
 
-  const handleSubmitReview = async (data) => {
-    console.log('Submit review:', data);
-    toast.success('Review submitted successfully!');
+  const handleOpenEdit = (listing) => {
+    setSelectedListing(listing);
+    setEditOpen(true);
   };
 
-  const handleSubmitReport = async (data) => {
-    console.log('Submit report:', data);
-    toast.success('Report submitted. Thank you for your feedback.');
+  const handleEditSubmit = async (listingId, payload) => {
+    try {
+      const updated = await update(listingId, payload);
+      setSelectedListing((prev) => (prev?.id === listingId ? { ...prev, ...updated } : prev));
+      setEditOpen(false);
+      await refreshListings();
+    } catch (e) {
+      // toast already shown in hook
+    }
   };
 
   return (
@@ -158,24 +162,20 @@ const MarketplaceListings = () => {
         <div className="flex items-center gap-3">
           <Store className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold text-foreground">Marketplace</h2>
+
           <Badge variant="outline" className="ml-2">
-            {user?.role === 'seller' ? 'Seller' : 'Buyer'}
+            {isSeller ? 'Seller' : 'Buyer'}
           </Badge>
         </div>
+
         <div className="flex gap-2">
-          {/* Role toggle for demo */}
-          <Button variant="outline" size="sm" onClick={toggleRole}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Switch to {user?.role === 'buyer' ? 'Seller' : 'Buyer'}
+          {/* Always show; gate with toast */}
+          <Button onClick={handleOpenCreate}>
+            <p className="flex">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Listing
+            </p>
           </Button>
-          
-          {/* Create listing button - only for sellers */}
-          {isSeller && (
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Listing
-            </Button>
-          )}
         </div>
       </div>
 
@@ -215,18 +215,24 @@ const MarketplaceListings = () => {
         listing={selectedListing}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
-        onOrder={handleOrder}
         onDelete={handleDelete}
+        onEdit={handleOpenEdit}
+        onOrder={handleOrder}
         onReport={handleReport}
       />
 
       <CreateListingDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSubmit={handleCreateListing}
+        onSubmit={handleCreate}
       />
 
-    
+      <EditListingDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        listing={selectedListing}
+        onSubmit={handleEditSubmit}
+      />
     </section>
   );
 };

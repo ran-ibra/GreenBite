@@ -32,45 +32,42 @@ export const getListings = async (params = {}) => {
  * POST /community/market/listings
  */
 export const createListing = async (data) => {
-  const response = await axios.post('/api/community/market/listings', {
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+
+  if (isFormData) {
+    const response = await axios.post('/api/community/market/listings/', data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  }
+
+  // fallback JSON (no image)
+  const response = await axios.post('/api/community/market/listings/', {
     title: data.title,
     description: data.description || null,
-    featured_image: data.featured_image || null,
     price: Number(data.price),
     currency: data.currency || 'EGP',
     quantity: Number(data.quantity),
     unit: data.unit,
     available_until: data.available_until,
   });
-    return response.data;
+  return response.data;
 };
 
-/**
- * Update listing
- * PATCH /community/market/listings/{listing_id}
- */
+
 export const updateListing = async (listingId, data) => {
-  const response = await axios.patch(`/api/community/market/listings/${listingId}`, {
-    title: data.title,
-    description: data.description || null,
-    featured_image: data.featured_image || null,
-    price: Number(data.price),
-    quantity: Number(data.quantity),
-    unit: data.unit,
-    available_until: data.available_until,
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+
+  const response = await axios.patch(`/api/community/market/listings/${listingId}/`, data, {
+    headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined,
   });
   return response.data;
 };
 
-/**
- * Delete listing (soft delete)
- * DELETE /community/market/listings/{listing_id}
- */
 export const deleteListing = async (listingId) => {
-  const response = await axios.delete(`/api/community/market/listings/${listingId}`);
-  return response.data;
+  const response = await axios.delete(`/api/community/market/listings/${listingId}/`);
+  return response.data; 
 };
-
 /**
  * =========================
  * MARKETPLACE – REVIEWS

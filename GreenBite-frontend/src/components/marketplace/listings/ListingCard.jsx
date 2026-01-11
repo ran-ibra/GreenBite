@@ -28,7 +28,8 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
   const isExpired = daysLeft <= 0;
   const isActive = (status === 'Active' || status === 'ACTIVE') && !isExpired;
 
-  const canOrder = isSubscribed && isActive;
+  const canList = isSubscribed && isActive;
+  const canOrder = !isOwner && !isSeller;
 
   return (
     <Card
@@ -70,7 +71,7 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
         </div>
 
         {/* Average Rating - shown for sellers on their products or for all products */}
-        {(average_rating !== undefined || isSeller) && (
+        {(average_rating !== undefined) && (
           <div className="flex items-center gap-2 text-sm mb-3">
             <Star className="h-4 w-4 text-warning fill-warning" />
             <span className="font-medium">{average_rating?.toFixed(1) || 'N/A'}</span>
@@ -85,7 +86,7 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
           <span>{daysLeft > 0 ? `${daysLeft} days left` : 'Expired'}</span>
         </div>
 
-        {seller && (
+        {canOrder && (
           <div className="flex items-center justify-between text-sm mb-4">
             <span className="text-muted-foreground">by {seller.name}</span>
             <div className="flex items-center gap-1">
@@ -95,32 +96,29 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
           </div>
         )}
 
-        {!isSubscribed && !isOwner && (
-          <div className="mb-3 text-xs text-warning">
-            Subscribe to place orders.
-          </div>
-        )}
+        
 
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          {!isOwner && (
+          {canOrder && (
             <>
+            <Button variant="outline" className="w-full" size="sm" onClick={() => onViewDetails?.(listing)}>
+              View Details
+            </Button>
               <Button
                 className="flex-1"
                 onClick={() => onOrder?.(listing)}
                 disabled={!canOrder}
                 size="sm"
-                title={!isSubscribed ? "Subscribe to order" : undefined}
-              >
+              ><p flex className="flex">
                 <ShoppingCart className="h-4 w-4 mr-1" />
                 Order
+                </p>
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onReview?.(listing)}
-                disabled={!isSubscribed}
-                title={!isSubscribed ? "Subscribe to review" : "Write a review"}
               >
                 <MessageSquare className="h-4 w-4" />
               </Button>
@@ -129,19 +127,14 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
                 variant="outline"
                 size="sm"
                 onClick={() => onReport?.(listing)}
-                disabled={!isSubscribed}
-                title={!isSubscribed ? "Subscribe to report" : "Report listing"}
               >
                 <Flag className="h-4 w-4" />
               </Button>
             </>
           )}
 
-          {isOwner && (
-            <Button variant="outline" className="w-full" size="sm">
-              View Details
-            </Button>
-          )}
+          
+          
         </div>
       </CardContent>
     </Card>
