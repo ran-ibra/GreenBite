@@ -1,11 +1,11 @@
-import { Clock, Star, ShoppingCart, Flag, MessageSquare } from "lucide-react";
+import { Clock, Star, ShoppingCart, Flag, MessageSquare ,Pencil, Trash2} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/context/AuthProvider";
 import React from "react";
 
-const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) => {
+const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onEdit , onDelete }) => {
   const { user, isSubscribed } = useAuth();
   const isSeller = user?.role === "seller"; // adjust to your actual role field
   const {
@@ -27,8 +27,9 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
   const isOwner = seller?.id === user?.id;
   const isExpired = daysLeft <= 0;
   const isActive = (status === 'Active' || status === 'ACTIVE') && !isExpired;
+  const isAdmin = user?.role === "admin";
 
-  const canList = isSubscribed && isActive;
+  const canManage = isOwner || isAdmin;
   const canOrder = !isOwner && !isSeller;
 
   return (
@@ -130,6 +131,18 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport }) =>
               >
                 <Flag className="h-4 w-4" />
               </Button>
+            </>
+          )}
+          {canManage && (
+            <>
+              <div className="flex gap-2 w-full">
+                <Button variant="outline" size="sm" onClick={() => onEdit?.(listing)} title="Edit">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => onDelete?.(listing)} title="Delete">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </>
           )}
 

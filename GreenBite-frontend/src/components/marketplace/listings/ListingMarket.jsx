@@ -12,6 +12,8 @@ import { useAuth } from '@/context/AuthProvider';
 import { getListings } from '@/api/marketplace.api';
 import { toast } from 'react-hot-toast';
 import { useListings } from "@/hooks/uselistings";
+import OrderDetailsDialog from '@/pages/HomePages/Market/OrderDetailsDialog'
+import { useNavigate } from 'react-router-dom';
 
 const MarketplaceListings = () => {
   const [state, dispatch] = useReducer(marketplaceReducer, initialMarketplaceState);
@@ -19,6 +21,7 @@ const MarketplaceListings = () => {
   const { user, isSubscribed } = useAuth();
   const isAdmin = user?.role === "admin";
   const isSeller = user?.role === "seller";
+  const navigate = useNavigate();
 
   const { fetchListings, create, update, remove } = useListings();
 
@@ -29,7 +32,6 @@ const MarketplaceListings = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -94,18 +96,19 @@ const MarketplaceListings = () => {
   };
 
   const handleOrder = (listing) => {
-    setSelectedListing(listing);
-    setOrderOpen(true);
+    if (!listing?.id) return;
+    navigate(`/home/marketplace/checkout/${listing.id}`);
+
   };
 
   const handleReview = (listing) => {
     setSelectedListing(listing);
-    setReviewOpen(true);
+    toast("Review not wired yet.");
   };
 
   const handleReport = (listing) => {
     setSelectedListing(listing);
-    setReportOpen(true);
+    toast("Report not wired yet.");
   };
 
   const refreshListings = async () => {
@@ -205,6 +208,8 @@ const MarketplaceListings = () => {
               onOrder={handleOrder}
               onReview={handleReview}
               onReport={handleReport}
+              onEdit={handleOpenEdit}
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -233,6 +238,7 @@ const MarketplaceListings = () => {
         listing={selectedListing}
         onSubmit={handleEditSubmit}
       />
+  
     </section>
   );
 };
