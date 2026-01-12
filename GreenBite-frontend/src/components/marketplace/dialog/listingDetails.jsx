@@ -43,13 +43,13 @@ const ListingDetailsDialog = ({
     review_count,
   } = listing;
 
-  const isOwner = Boolean(isSeller && seller?.id === user?.id);
+  const isOwner = Boolean(isSubscribed && seller?.id === user?.id);
 
   // owner must be subscribed to edit/delete; admin always can
-  const canEditDelete = Boolean(isAdmin || (isOwner && isSubscribed));
+  const canEditDelete = Boolean(isOwner && isSubscribed) || isAdmin;
 
   // buyer = authenticated and not seller/admin (you can switch to !isSubscribed if that’s your rule)
-  const isBuyer = Boolean(user && !isAdmin && !isSeller);
+  const isBuyer = Boolean(user && !isAdmin && !isSubscribed);
   const canOrder = Boolean(isBuyer && status === "ACTIVE");
   const canReport = Boolean(user && !isOwner && !isAdmin);
   const canReview = Boolean(isBuyer); // backend should enforce "only if ordered"
