@@ -3,7 +3,7 @@ import { useOrderDetails } from "@/hooks/orders/useOrderDetails";
 import { useAcceptOrder } from "@/hooks/orders/useAcceptOrders";
 import { useUpdateOrderStatus } from "@/hooks/orders/useUpdateOrderStatus";
 
-export default function orderDetailsDialog({ isOpen, orderId, onClose, mode}){
+export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
     const {data, isLoading, isError} = useOrderDetails(orderId, {
         enabled: isOpen && !!orderId,
     });
