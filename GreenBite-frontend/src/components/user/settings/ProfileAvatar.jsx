@@ -9,7 +9,7 @@ const ProfileAvatar = () => {
 
   const first_name = data?.first_name;
   const last_name = data?.last_name;
-  const avatarUrl = data?.avatar_url; 
+  const avatarUrl = data?.profile?.avatar_url;
 
   const handleSubmit = () => {
     const formData = new FormData();

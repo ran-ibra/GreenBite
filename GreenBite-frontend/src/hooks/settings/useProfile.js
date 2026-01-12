@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // GET PROFILE (use the same endpoint you update)
 export const getProfile = async () => {
-  const res = await api.get("/api/profile/");
+  const res = await api.get("/auth/users/me/  ");
   return res.data;
 };
 

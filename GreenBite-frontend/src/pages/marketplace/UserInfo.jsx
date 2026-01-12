@@ -289,9 +289,9 @@ function UserInfo() {
               <PulseRing size="large" />
               <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-600 rounded-full blur-xl opacity-50 group-hover/avatar:opacity-75 transition-opacity duration-500"></div>
               <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-white text-4xl shadow-2xl border-4 border-white transform transition-all duration-500 group-hover/avatar:scale-110 group-hover/avatar:rotate-6">
-                {profile?.avatar ? (
+                {profile?.avatar_url ? (
                   <img
-                    src={profile.avatar}
+                    src={profile.avatar_url}
                     alt="avatar"
                     className="w-full h-full object-cover rounded-full"
                   />

@@ -37,7 +37,7 @@ const NavBar = () => {
 
   if (!user || isLoading || !data) return null;
 
-  const { first_name, last_name, avatar_url  } = data;
+  const { first_name, last_name, profile: { avatar_url } = {} } = data || {};
 
   const handelLogout = () => {
     logout();
