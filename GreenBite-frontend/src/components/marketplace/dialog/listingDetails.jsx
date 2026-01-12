@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Flag, Star, Clock, User } from 'lucide-react';
+import { Trash2, Flag, Star, Clock, User, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -129,7 +129,7 @@ const ListingDetailsDialog = ({
 
           <Separator className="bg-emerald-200/70" />
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap justify-center"> 
             {canOrder ? (
               <Button className="flex-1" onClick={() => onOrder?.(listing)}>
                 Order Now
