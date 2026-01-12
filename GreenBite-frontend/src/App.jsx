@@ -30,6 +30,9 @@ import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
 import Pricing from "./pages/Pricing/Pricing";
 import PaymentResult from "@/pages/payment/PaymentResult";
 import Marketplace from "./pages/HomePages/Market/MarketPage";
+import CheckoutPage from "./pages/HomePages/Market/CheckoutPage";
+import BuyerOrdersPage from "./pages/HomePages/Market/BuyerOrdersPage";
+import SellerOrdersPage from "./pages/HomePages/Market/SellerOrdersPage";
 import ProfileLayout from "@/layouts/ProfileLayout";
 import UserInfo from "@/pages/marketplace/UserInfo";
 
@@ -108,8 +111,15 @@ function App() {
                   <Route path="generate" element={<GenerateMealPlanPage />} />
                   <Route path=":id" element={<MealPlanDetailPage />} />
                 </Route>
+
                 <Route path="marketplace">
                   <Route index element={<Marketplace />} />
+                  <Route
+                    path="checkout/:listingId"
+                    element={<CheckoutPage />}
+                  />
+                  <Route path="orders/buyer" element={<BuyerOrdersPage />} />
+                  <Route path="orders/seller" element={<SellerOrdersPage />} />
                 </Route>
               </Route>
             </Route>
