@@ -11,6 +11,7 @@ import {
   SelectItem,
 } from "@/components/ui/Select";
 import { MP_DIALOG } from '@/components/ui/DialogTheme';
+import { toast } from 'react-hot-toast';
 
 const UNIT_OPTIONS = ["kg", "g", "L", "ml", "pcs"];
 
@@ -42,32 +43,53 @@ const CreateListingDialog = ({ open, onOpenChange, onSubmit }) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await onSubmit?.({
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        price: form.price, 
-        currency: form.currency,
-        quantity: Number(form.quantity),
-        unit: form.unit,
-        available_until: form.available_until,
-        featured_image: form.featured_image, 
-              });
-
-      onOpenChange?.(false);
-      setForm({
-        title: '',
-        description: '',
-        price: '',
-        currency: 'EGP',
-        quantity: '',
-        unit: 'kg',
-        available_until: '',
-        featured_image: null,
-      });
-    } finally {
-      setSubmitting(false);
+    // validate required fields before sending 
+    if (!form.available_until) {
+      toast.error("Please select an available-until date.");
+      return;
     }
-  };
+    if (!form.price || Number(form.price) <= 0) {
+      toast.error("Price must be greater than 0.");
+      return;
+    }
+    if (!form.quantity || Number(form.quantity) <= 0) {
+      toast.error("Quantity must be greater than 0.");
+      return;
+    }
+
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      price: Number(form.price),          //
+      currency: form.currency || "EGP",
+      quantity: Number(form.quantity),    
+      unit: form.unit,
+      available_until: form.available_until, 
+      
+    };
+    if (form.featured_image instanceof File) {
+      payload.featured_image = form.featured_image;
+    }
+
+    console.log("[CreateListingDialog] payload:", payload);
+
+    await onSubmit?.(payload);
+
+    onOpenChange?.(false);
+    setForm({
+      title: "",
+      description: "",
+      price: "",
+      currency: "EGP",
+      quantity: "",
+      unit: "kg",
+      available_until: "",
+      featured_image: null,
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
