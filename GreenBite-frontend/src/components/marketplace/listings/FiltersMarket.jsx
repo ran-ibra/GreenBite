@@ -86,11 +86,16 @@ const MarketplaceFilters = ({ filters, dispatch }) => {
 
       {/* Active Filters Indicator */}
       {hasActiveFilters && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2 min-w-full overflow-hidden">
           {filters.search && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
-              <Search className="h-3.5 w-3.5" />
-              <span className="truncate max-w-[150px]">{filters.search}</span>
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 
+             bg-emerald-100 text-emerald-700 rounded-full 
+             text-sm font-medium w-full overflow-hidden"
+            >
+              <Search className="h-3.5 w-3.5 flex-shrink-0" />
+
+              <span className="truncate min-w-0">{filters.search}</span>
             </div>
           )}
           {filters.minPrice && (
