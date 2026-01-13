@@ -7,7 +7,6 @@ import Footer from "../components/LandingPage/Footer";
 
 export default function LandingPage() {
   return (
-    
     <div className="bg-gray-50">
       <div className="px-5">
         <AppNavbar />
@@ -20,8 +19,6 @@ export default function LandingPage() {
       <div>
         <Footer />
       </div>
-      
     </div>
-    
   );
 }
