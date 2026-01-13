@@ -8,9 +8,13 @@ __pycache__/
 # Virtual environments
 .env/
 .venv/
+.env
 env/
 venv/
 ENV/
+.env
+
+media/
 
 # Django stuff
 db.sqlite3
@@ -18,8 +22,11 @@ media/
 staticfiles/
 *.log
 
+# Celery beat schedule file
+celerybeat-schedule
+
 # Env files (secrets)
- .env
+.env
 
 # VS Code
 .vscode/
@@ -31,3 +38,5 @@ Thumbs.db
 
 # Migrations cache (optional to ignore)
 # **/migrations/*.py[cod]
+# Celery beat schedule file
+celerybeat-schedule

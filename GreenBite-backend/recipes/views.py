@@ -1,3 +1,500 @@
-from django.shortcuts import render
+import json
+import random
+from decimal import Decimal
+from django.conf import settings
+from django.db import transaction
+from django.db.models import Q, Func, Value
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.core.cache import cache
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.decorators import permission_classes
 
-# Create your views here.
+from food.models import FoodLogSys, FoodLogUsage
+from food.utils.caching import list_key, detail_key, get_list_version
+from recipes.models import MealDBRecipe, RecipeFavorite
+from recipes.serializers import ConsumePreviewSerializer, ConsumeConfirmSerializer
+
+# OpenAI is optional fallback
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
+
+client = None
+if OpenAI and getattr(settings, "OPENAI_API_KEY", None):
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+#Cache 
+CACHE_TTL_SECONDS = 60 * 60
+REC_NAMESPACE = "recipes:recommend"
+MEALDB_DETAIL_NAMESPACE = "mealdb:detail"
+INVENTORY_NAMESPACE = "foodlog"
+
+def _recommend_cache_key(request) -> str:
+    user_id = request.user.id
+    inv_v = get_list_version(INVENTORY_NAMESPACE, user_id)
+    # include inventory version in the hashed input
+    full_path = f"{request.get_full_path()}|inv_v={inv_v}"
+    return list_key(REC_NAMESPACE, user_id, full_path)
+
+
+def _mealdb_detail_cache_key(mealdb_id: str) -> str:
+    # Use user_id=0 for a global-ish key (still namespaced)
+    return detail_key(MEALDB_DETAIL_NAMESPACE, 0, int(_safe_int_hash(mealdb_id)))
+
+
+def _safe_int_hash(s: str) -> int:
+    # stable int derived from a string for detail_key(pk:int)
+    # (pk only needs to be consistent, not meaningful)
+    acc = 0
+    for ch in (s or "")[:120]:
+        acc = (acc * 131 + ord(ch)) % 2_000_000_000
+    return acc or 1
+class RecommendRecipesAPIView(APIView):
+    """
+    GET /recipes/recommend?limit=5
+    Recommends recipes from MealDBRecipe based on user's non-expired inventory.
+    Uses LLM ONLY as a selector among DB candidates (never generates recipes).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # ---- cache check (per-user + tied to inventory version) ----
+        ck = _recommend_cache_key(request)
+        cached = cache.get(ck)
+        if cached is not None:
+            return Response(cached, status=status.HTTP_200_OK)
+
+        # ---- input parsing ----
+        try:
+            limit = int(request.query_params.get("limit", 5))
+        except (TypeError, ValueError):
+            limit = 5
+        limit = max(1, min(limit, 10))
+
+        today = timezone.now().date()
+
+        # 1) User inventory (not consumed, not expired) ordered by expiry
+        inventory_qs = FoodLogSys.objects.filter(
+            user=request.user,
+            is_consumed=False,
+            expiry_date__gte=today,
+        ).order_by("expiry_date")
+
+        inv_rows = list(
+            inventory_qs.values("name_normalized", "expiry_date", "quantity", "unit")
+        )
+        inv_norms = sorted({x["name_normalized"] for x in inv_rows if x["name_normalized"]})
+
+        if not inv_norms:
+            out = []
+            cache.set(ck, out, timeout=CACHE_TTL_SECONDS)
+            return Response(out, status=status.HTTP_200_OK)
+
+        inv_set = set(inv_norms)
+
+        # map ingredient -> min days left
+        inv_days = {}
+        for x in inv_rows:
+            norm = x["name_normalized"]
+            if not norm:
+                continue
+            days = (x["expiry_date"] - today).days
+            inv_days[norm] = min(inv_days.get(norm, 10**9), days)
+
+        candidates_qs = MealDBRecipe.objects.all().only(
+            "id",
+            "mealdb_id",
+            "title",
+            "thumbnail",
+            "category",
+            "cuisine",
+            "ingredient_tokens",
+            "meal_time",
+            "difficulty",
+            "instructions",
+            "tags",
+            "ingredients",
+        )
+
+        # Prefer DB overlap filter if supported; else fallback
+        try:
+            candidates_qs = candidates_qs.extra(
+                where=["ingredient_tokens::jsonb ?| %s"],
+                params=[inv_norms],
+            )[:400]
+        except Exception:
+            candidates_qs = candidates_qs[:1200]
+
+        candidates_scored = []
+        for r in candidates_qs:
+            ing_norms = r.ingredient_tokens or []
+            ing_set = set(ing_norms)
+
+            matched = list(ing_set & inv_set)
+            match_count = len(matched)
+            if match_count < 1:
+                continue
+
+            min_days = min([inv_days[m] for m in matched], default=999999)
+
+            candidates_scored.append(
+                {
+                    "recipe_id": r.id,
+                    "mealdb_id": r.mealdb_id,
+                    "title": r.title,
+                    "thumbnail": r.thumbnail,
+                    "category": r.category,
+                    "cuisine": r.cuisine,
+                    "meal_time": r.meal_time,
+                    "difficulty": r.difficulty,
+                    "ingredient_tokens": list(ing_set)[:30],
+                    "match_count": match_count,
+                    "min_days_left": min_days,
+                }
+            )
+
+        if not candidates_scored:
+            out = []
+            cache.set(ck, out, timeout=CACHE_TTL_SECONDS)
+            return Response(out, status=status.HTTP_200_OK)
+
+        # deterministic ranking as base
+        candidates_scored.sort(key=lambda x: (-x["match_count"], x["min_days_left"]))
+        top_for_llm = candidates_scored[:150]
+
+        # 3) LLM selector (optional): choose ONLY recipe_id from candidates
+        selected_ids = []
+        why_map = {}
+
+        if client:
+            try:
+                payload = {
+                    "limit": limit,
+                    "inventory": [
+                        {
+                            "name_norm": x["name_normalized"],
+                            "days_left": (x["expiry_date"] - today).days,
+                        }
+                        for x in inv_rows
+                        if x["name_normalized"]
+                    ],
+                    "candidates": [
+                        {
+                            "recipe_id": c["recipe_id"],
+                            "title": c["title"],
+                            "ingredient_tokens": c["ingredient_tokens"],
+                            "match_count": c["match_count"],
+                            "min_days_left": c["min_days_left"],
+                            "meal_time": c["meal_time"],
+                            "difficulty": c["difficulty"],
+                        }
+                        for c in top_for_llm
+                    ],
+                }
+
+                messages = [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a recipe recommendation assistant.\n"
+                            "RULES:\n"
+                            "- You MUST select recipe_id values ONLY from the provided candidates.\n"
+                            "- Do NOT invent recipes, ingredients, steps, or ids.\n"
+                            "- Output JSON only in this format:\n"
+                            "{\"selected\":[{\"recipe_id\":123,\"why\":\"...\"}]}\n"
+                            "- If none fit, output: {\"selected\":[]}\n"
+                        ),
+                    },
+                    {"role": "user", "content": json.dumps(payload)},
+                ]
+
+                resp = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    temperature=0.2,
+                    response_format={"type": "json_object"},
+                )
+
+                data = json.loads(resp.choices[0].message.content)
+                picked = data.get("selected", []) or []
+
+                allowed = {c["recipe_id"] for c in top_for_llm}
+                for item in picked:
+                    rid = item.get("recipe_id")
+                    if isinstance(rid, int) and rid in allowed:
+                        selected_ids.append(rid)
+                        why_map[rid] = (item.get("why") or "").strip()[:220]
+
+                selected_ids = selected_ids[:limit]
+
+            except Exception:
+                selected_ids = []
+
+        # 4) Fallback: deterministic top matches
+        if not selected_ids:
+            selected_ids = [c["recipe_id"] for c in top_for_llm[:limit]]
+
+        # 5) Return full recipes from DB (never from LLM)
+        recipes = list(MealDBRecipe.objects.filter(id__in=selected_ids))
+        rmap = {r.id: r for r in recipes}
+        ordered = [rmap[i] for i in selected_ids if i in rmap]
+
+        out = []
+        for r in ordered:
+            ing_norms = r.ingredient_tokens or []
+            matched = [n for n in ing_norms if n in inv_days]
+
+            expiring_soon = sorted(
+                [{"name_norm": n, "days_left": inv_days[n]} for n in matched],
+                key=lambda d: d["days_left"],
+            )[:5]
+
+            out.append(
+                {
+                    "recipe_id": r.id,
+                    "mealdb_id": r.mealdb_id,
+                    "title": r.title,
+                    "thumbnail": r.thumbnail,
+                    "category": r.category,
+                    "cuisine": r.cuisine,
+                    "instructions": r.instructions,
+                    "tags": r.tags,
+                    "ingredients": r.ingredients,  # list of {"name","measure"}
+                    "mealTime": r.meal_time,
+                    "difficulty": r.difficulty,
+                    "why": why_map.get(r.id, ""),
+                    "match": {
+                        "matched_ingredients_norm": matched,
+                        "expiring_soon": expiring_soon,
+                    },
+                }
+            )
+
+        cache.set(ck, out, timeout=CACHE_TTL_SECONDS)
+        return Response(out, status=status.HTTP_200_OK)
+
+
+
+class ConsumePreviewAPIView(APIView):
+    """
+    POST /recipes/consume/preview
+    { "recipe_id": 123 }
+    Returns matching FoodLogSys records grouped by ingredient.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        s = ConsumePreviewSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        recipe = get_object_or_404(MealDBRecipe, id=s.validated_data["recipe_id"])
+
+        today = timezone.now().date()
+        recipe_norms = sorted(set([x for x in (recipe.ingredient_tokens or []) if x]))
+
+        logs = FoodLogSys.objects.filter(
+            user=request.user,
+            is_consumed=False,
+            expiry_date__gte=today,
+            name_normalized__in=recipe_norms,
+        ).order_by("expiry_date")
+
+        grouped = {}
+        for fl in logs:
+            grouped.setdefault(fl.name_normalized, []).append(
+                {
+                    "foodlog_id": fl.id,
+                    "name": fl.name,
+                    "name_normalized": fl.name_normalized,
+                    "quantity_available": str(fl.quantity),
+                    "unit": fl.unit,
+                    "expiry_date": str(fl.expiry_date),
+                    "days_left": (fl.expiry_date - today).days,
+                }
+            )
+
+        return Response(
+            {
+                "recipe_id": recipe.id,
+                "mealdb_id": recipe.mealdb_id,
+                "title": recipe.title,
+                "recipe_ingredients_norm": recipe_norms,
+                "matches": grouped,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+
+class ConsumeConfirmAPIView(APIView):
+    """
+    POST /recipes/consume/confirm
+    {
+      "recipe_id": 123,
+      "items": [{"foodlog_id": 7, "used_quantity": "1.5"}]
+    }
+    Deducts quantities + records FoodLogUsage.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        s = ConsumeConfirmSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        today = timezone.now().date()
+        recipe_id = s.validated_data["recipe_id"]
+        items = s.validated_data["items"]
+
+        recipe = get_object_or_404(MealDBRecipe, id=recipe_id)
+        recipe_norms = set(recipe.ingredient_tokens or [])
+
+        ids = [x["foodlog_id"] for x in items]
+        with transaction.atomic():
+            logs = list(
+                FoodLogSys.objects.select_for_update().filter(
+                    user=request.user,
+                    id__in=ids,
+                    is_consumed=False,
+                    expiry_date__gte=today,
+                )
+            )
+            log_map = {fl.id: fl for fl in logs}
+
+            # validate all ids exist + belong to recipe ingredients
+            for it in items:
+                fl = log_map.get(it["foodlog_id"])
+                if not fl:
+                    return Response(
+                        {"detail": f"Invalid foodlog_id: {it['foodlog_id']}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if fl.name_normalized not in recipe_norms:
+                    return Response(
+                        {"detail": f"FoodLog {fl.id} not part of this recipe ingredients"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            # consumption + usage logging
+            for it in items:
+                fl = log_map[it["foodlog_id"]]
+                used_qty = Decimal(str(it["used_quantity"]))
+                fl.consume(used_qty)
+                FoodLogUsage.objects.create(
+                    user=request.user,
+                    recipe=recipe,
+                    foodlog=fl,
+                    used_quantity=used_qty,
+                )
+
+
+        return Response(
+            {"detail": "Consumption recorded successfully"},
+            status=status.HTTP_200_OK,
+        )
+
+
+@api_view(["GET"])
+def mealdb_random(request):
+    """
+    GET /recipes/mealdb/random?n=1
+    Returns 1 (default) or N random MealDBRecipe cards.
+    """
+    raw_n = request.query_params.get("n", "1")
+    try:
+        n = int(raw_n)
+    except (TypeError, ValueError):
+        n = 1
+
+    n = max(1, min(n, 50))
+
+    qs = MealDBRecipe.objects.all()
+    total = qs.count()
+    if total == 0:
+        return Response([] if n > 1 else {}, status=status.HTTP_204_NO_CONTENT)
+
+    n = min(n, total)
+    ids = list(qs.values_list("id", flat=True))
+    picked_ids = random.sample(ids, n)
+
+    meals = list(
+        MealDBRecipe.objects.filter(id__in=picked_ids).values(
+            "mealdb_id", "title", "thumbnail", "category", "cuisine"
+        )
+    )
+
+    if n == 1:
+        return Response(meals[0], status=status.HTTP_200_OK)
+
+    return Response(meals, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def mealdb_detail(request, mealdb_id: str):
+    
+    # Optional: cache this because it’s pure DB read (safe)
+    ck = detail_key(MEALDB_DETAIL_NAMESPACE, 0, int(_safe_int_hash(mealdb_id)))
+    cached = cache.get(ck)
+    if cached is not None:
+        return Response(cached, status=status.HTTP_200_OK)
+
+    meal = get_object_or_404(MealDBRecipe, mealdb_id=mealdb_id)
+
+    data = {
+        "recipe_id": meal.id,
+        "mealdb_id": meal.mealdb_id,
+        "title": meal.title,
+        "category": meal.category,
+        "cuisine": meal.cuisine,
+        "instructions": meal.instructions,
+        "thumbnail": meal.thumbnail,
+        "tags": meal.tags,
+        "ingredients": meal.ingredients,
+        "mealTime": meal.meal_time,
+        "difficulty": meal.difficulty,
+        "created_at": meal.created_at,
+        "updated_at": meal.updated_at,
+    }
+
+    cache.set(ck, data, timeout=60 * 10)  # 10 minutes
+    return Response(data, status=status.HTTP_200_OK)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_to_favorites(request):
+
+    recipe_id = request.data.get("recipe_id")
+    mealdb_id = request.data.get("mealdb_id")
+
+    if not recipe_id and not mealdb_id:
+        return Response(
+            {"detail": "Provide either 'recipe_id' or 'mealdb_id'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Fetch the recipe
+    if recipe_id:
+        recipe = get_object_or_404(MealDBRecipe, id=recipe_id)
+    else:
+        recipe = get_object_or_404(MealDBRecipe, mealdb_id=str(mealdb_id).strip())
+
+    # Create favorite safely (no duplicates)
+    favorite, created = RecipeFavorite.objects.get_or_create(
+        user=request.user,
+        recipe=recipe,
+    )
+
+    if not created:
+        return Response(
+            {"detail": "Recipe is already in favorites"},
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(
+        {"detail": "Recipe added to favorites", "favorite_id": favorite.id},
+        status=status.HTTP_201_CREATED,
+    )

@@ -1,5 +1,11 @@
-from django.db import models
+from __future__ import annotations
 
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.fields import ArrayField
+from django.conf import settings
+from project.utils.normalize import normalize_ingredient_name
 
 
 class MealTimeChoices(models.TextChoices):
@@ -16,87 +22,107 @@ class DifficultyChoices(models.TextChoices):
     HARD = "hard", "Hard"
 
 
-class Ingredient(models.Model):
-    name_norm = models.CharField(max_length=120, unique=True, db_index=True)
-    display_name = models.CharField(max_length=120, blank=True, default="")
+class MealDBRecipe(models.Model):
+    """
+    TheMealDB-backed recipe model (your single source of truth).
+    `ingredients` is a JSON list of objects, e.g.
+      [{"name": "chicken", "measure": "500g"}, ...]
+    `ingredient_tokens` is an ArrayField of normalized strings for matching with FoodLogSys.
+    """
 
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self) -> str:
-        return self.display_name or self.name_norm
-
-    class Meta:
-        ordering = ["name_norm"]
-
-
-class Recipe(models.Model):
-    foodcom_id = models.PositiveIntegerField(unique=True, db_index=True)
+    mealdb_id = models.CharField(max_length=20, unique=True, db_index=True)
 
     title = models.CharField(max_length=255, db_index=True)
-
-    minutes = models.PositiveIntegerField(null=True, blank=True)
-
-    # Food.com: tags is a list of strings -> JSON list
+    category = models.CharField(max_length=100, blank=True, default="")
+    cuisine = models.CharField(max_length=100, blank=True, default="")
+    instructions = models.TextField(blank=True, default="")
+    thumbnail = models.URLField(blank=True, default="")
     tags = models.JSONField(default=list, blank=True)
+    youtube = models.URLField(blank=True, default="")
+    source = models.URLField(blank=True, default="")
 
-    # Food.com: nutrition is a list (calories first) -> keep raw + store calories
-    nutrition = models.JSONField(default=list, blank=True)
-    calories = models.IntegerField(null=True, blank=True)
+    # Ingredients
+    ingredients = models.JSONField(default=list, blank=True)
+    
+    # ✅ RENAMED: ingredients_norm → ingredient_tokens (to match DB)
+    ingredient_tokens = models.JSONField(
+        default=list,
+        blank=True,
+        null=True
+    )
 
-    # Food.com: steps is a list of strings -> JSON list
-    steps = models.JSONField(default=list, blank=True)
-
-    # Optional enrichment for your app
-    cuisine = models.CharField(max_length=100, null=True, blank=True)
     meal_time = models.CharField(
-        max_length=20, choices=MealTimeChoices.choices, null=True, blank=True
+        max_length=20, choices=MealTimeChoices.choices, null=True, blank=True, db_index=True
     )
     difficulty = models.CharField(
-        max_length=10, choices=DifficultyChoices.choices, null=True, blank=True
-    )
-    servings = models.PositiveIntegerField(null=True, blank=True)
-
-    ingredients = models.ManyToManyField(
-        Ingredient, through="RecipeIngredient", related_name="recipes"
+        max_length=10, choices=DifficultyChoices.choices, null=True, blank=True, db_index=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self) -> str:
-        return f"{self.title} (foodcom:{self.foodcom_id})"
+    embedding = models.JSONField(null=True, blank=True)
 
     class Meta:
-        ordering = ["-updated_at"]
+        ordering = ["title"]
         indexes = [
-            models.Index(fields=["meal_time"]),
-            models.Index(fields=["difficulty"]),
+            GinIndex(fields=["ingredient_tokens"], name="mealdb_ing_tokens_gin"),  # ✅ Updated index name
+            GinIndex(fields=["tags"], name="mealdb_tags_gin"),
             models.Index(fields=["cuisine"]),
-        ]
-
-
-class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(
-        Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients"
-    )
-    ingredient = models.ForeignKey(
-        Ingredient, on_delete=models.CASCADE, related_name="ingredient_recipes"
-    )
-    raw_text = models.CharField(max_length=255, blank=True, default="")
-
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    unit = models.CharField(max_length=50, blank=True, default="")
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["recipe", "ingredient"], name="uniq_recipe_ingredient"
-            )
-        ]
-        indexes = [
-            models.Index(fields=["recipe"]),
-            models.Index(fields=["ingredient"]),
+            models.Index(fields=["category"]),
         ]
 
     def __str__(self) -> str:
-        return f"{self.recipe_id} - {self.ingredient_id}"
+        return f"{self.title} (mealdb:{self.mealdb_id})"
+
+    def rebuild_ingredients_norm(self) -> None:
+        """Rebuild normalized ingredient tokens from raw ingredients."""
+        norms = []
+        for it in (self.ingredients or []):
+            raw = (it.get("name") or it.get("ingredient") or "").strip()
+            if not raw:
+                continue
+            n = normalize_ingredient_name(raw)
+            if n:
+                norms.append(n)
+
+        self.ingredient_tokens = sorted(set(norms))  # ✅ Updated field name
+
+    def save(self, *args, **kwargs):
+        self.rebuild_ingredients_norm()
+        super().save(*args, **kwargs)
+
+
+class RecipeFavorite(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recipe_favorites")
+    recipe = models.ForeignKey(MealDBRecipe, on_delete=models.CASCADE, related_name="favorites")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "recipe"], name="uniq_favorite_user_recipe")
+        ]
+
+    def __str__(self) -> str:
+        return f"Favorite(user={self.user_id}, recipe={self.recipe_id})"
+
+
+class RecipeReview(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recipe_reviews")
+    recipe = models.ForeignKey(MealDBRecipe, on_delete=models.CASCADE, related_name="reviews")
+
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    comment = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "recipe"], name="uniq_review_user_recipe")
+        ]
+
+    def __str__(self) -> str:
+        return f"Review(user={self.user_id}, recipe={self.recipe_id}, rating={self.rating})"

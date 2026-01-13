@@ -31,8 +31,13 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
 
+
 # Example: ALLOWED_HOSTS="127.0.0.1 localhost"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split() or []
+
+# just for testing 
+ALLOWED_HOSTS = ["*"]
+
+# ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split() or []
 
 
 # Application definition
@@ -44,6 +49,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "django.contrib.postgres",
+    "django.contrib.sites",
+
 
     # Third-party
     'rest_framework', 
@@ -51,15 +59,23 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'djoser',
-
+    'drf_yasg',
+    'django_filters',
+    'django_celery_results',
+    "django_celery_beat",
 
 
     # apps
-    "project",  
     "accounts",
+    "project",  
     "food",
     "recipes",
+    "meal_plans",
+    "payments",
+    "subscriptions.apps.SubscriptionsConfig",  
+    'community',
 ]
+SITE_ID = 1
 
 # -------------------------------------------------
 # REST Framework
@@ -78,18 +94,32 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/day",
-        "user": "1000/day",
+        "anon": "100/minute",
+        "user": "1000/minute",
     }
 }
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL", "http://minio:9000")
+S3_PUBLIC_ENDPOINT_URL = os.getenv("S3_PUBLIC_ENDPOINT_URL", S3_ENDPOINT_URL)
+
+S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID", "")
+S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY", "")
+S3_REGION = os.getenv("S3_REGION", "us-east-1")
+S3_BUCKET_FOOD_SCANS = os.getenv("S3_BUCKET_FOOD_SCANS", "greenbite-food-scans")
+S3_BUCKET_MARKET_IMAGES = os.getenv("S3_BUCKET_MARKET_IMAGES", "greenbite-market-images")
+S3_BUCKET_PROFILE_AVATARS = os.getenv("S3_BUCKET_PROFILE_AVATARS", "greenbite-profile-avatars")
+S3_BUCKET_FOOD_SCANS = os.getenv("S3_BUCKET_FOOD_SCANS", "greenbite-food-scans")
+
+# Keep this empty if you want private buckets (do not build public URLs)
+S3_PUBLIC_MEDIA_BASE_URL = os.getenv("S3_PUBLIC_MEDIA_BASE_URL", "").rstrip("/")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "TOKEN_OBTAIN_SERIALIZER": "accounts.views.MyTokenObtainPairSerializer"
+    "TOKEN_OBTAIN_SERIALIZER": "accounts.views.auth.MyTokenObtainPairSerializer"
 }
 
 # -------------------------------------------------
@@ -97,20 +127,76 @@ SIMPLE_JWT = {
 # -------------------------------------------------
 
 DJOSER = {
-    "LOGIN_FIELD": "email",  
+    "LOGIN_FIELD": "email",
+    "SEND_ACTIVATION_EMAIL": True,
     "USER_CREATE_PASSWORD_RETYPE": True,
     "PASSWORD_RESET_CONFIRM_RETYPE": True,
     "USER_DELETE_PASSWORD_CONFIRM": True,
     "TOKEN_MODEL": None,
+    "PASSWORD_RESET_CONFIRM_URL": "password/reset/confirm/{uid}/{token}/",
+    "ACTIVATION_URL": "activate/{uid}/{token}/",
 
-    "PASSWORD_RESET_CONFIRM_URL":"password/reset/confirm/{uid}/{token}/",
+    "PERMISSIONS": {
+        "resend_activation": ["rest_framework.permissions.AllowAny"],
+    },
 
     "SERIALIZERS": {
-        "user_create": "accounts.serializers.UserCreateSerializer",
-        "user_create_password_retype": "accounts.serializers.UserCreateSerializer",
+        "user_create": "accounts.serializers.user.UserCreateSerializer",
         
+        "current_user": "accounts.serializers.user.UserMeSerializer",
+        "user_create_password_retype": "accounts.serializers.user.UserCreateSerializer",
     },
 }
+
+# ==============
+# Redis
+# ==============
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
+CACHES = {
+    "default":{
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "TIMEOUT": 60*10,
+    }
+}
+
+# ==============
+# Paymob
+# ==============
+
+PAYMOB_SECRET_KEY = os.getenv("PAYMOB_SECRET_KEY")
+PAYMOB_PUBLIC_KEY = os.getenv("PAYMOB_PUBLIC_KEY")
+PAYMOB_INTEGRATION_ID = os.getenv("PAYMOB_INTEGRATION_ID")
+PAYMOB_BASE_URL = "https://accept.paymob.com"
+PAYMOB_WEBHOOK_URL = os.getenv("PAYMOB_WEBHOOK_URL")
+PAYMOB_REDIRECT_URL = os.getenv("PAYMOB_REDIRECT_URL")
+PAYMOB_HMAC_SECRET = os.getenv("PAYMOB_HMAC_SECRET")
+
+# ==============
+# Logger
+# ==============
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "payments": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
+
+# ==============
+# Email
+# ==============
 
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
@@ -118,16 +204,35 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/1"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
 
+# ==============
+# Swagger
+# ==============
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,
+    "DEFAULT_AUTO_SCHEMA_CLASS": "drf_yasg.inspectors.SwaggerAutoSchema",
+    "VALIDATOR_URL": None,  
+}
+
+# ==============
+# CORS
+# ==============
 
 CORS_ALLOW_ALL_ORIGINS = True
 AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     "corsheaders.middleware.CorsMiddleware",
+    'django.middleware.security.SecurityMiddleware',   
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    # 'project.middleware.block_get_body.BlockGetBodyMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -138,14 +243,15 @@ ROOT_URLCONF = 'project.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -204,3 +310,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
