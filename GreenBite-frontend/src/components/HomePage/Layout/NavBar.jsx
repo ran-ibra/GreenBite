@@ -37,8 +37,9 @@ const NavBar = () => {
 
   const handelLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/", { replace: true });
   };
+
   return (
     <div className="navbar bg-base-100 flex flex-row-reverse justify-between items-center  ">
       {/* profile */}
@@ -541,7 +542,7 @@ const NavBar = () => {
       </div>
 
       <div>
-        <Link to="/">
+        <Link to="/home">
           <img src={logo} className="w-50" alt="Logo" />
         </Link>
       </div>

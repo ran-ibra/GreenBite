@@ -109,6 +109,7 @@ S3_REGION = os.getenv("S3_REGION", "us-east-1")
 S3_BUCKET_FOOD_SCANS = os.getenv("S3_BUCKET_FOOD_SCANS", "greenbite-food-scans")
 S3_BUCKET_MARKET_IMAGES = os.getenv("S3_BUCKET_MARKET_IMAGES", "greenbite-market-images")
 S3_BUCKET_PROFILE_AVATARS = os.getenv("S3_BUCKET_PROFILE_AVATARS", "greenbite-profile-avatars")
+S3_BUCKET_FOOD_SCANS = os.getenv("S3_BUCKET_FOOD_SCANS", "greenbite-food-scans")
 
 # Keep this empty if you want private buckets (do not build public URLs)
 S3_PUBLIC_MEDIA_BASE_URL = os.getenv("S3_PUBLIC_MEDIA_BASE_URL", "").rstrip("/")

@@ -2,22 +2,31 @@ import base64
 import json
 from io import BytesIO
 
+from io import BytesIO
+
 from celery import shared_task
 from django.conf import settings
 from openai import OpenAI
 from PIL import Image
+from PIL import Image
 
 from .models import FoodSafetyScanJob
+from food.utils.minio_s3 import s3_client, SPOILAGE_SCHEMA  
 from food.utils.minio_s3 import s3_client, SPOILAGE_SCHEMA  
 
 client = OpenAI()
 
 MAX_DIM = 1280
 JPEG_QUALITY = 82
+MAX_DIM = 1280
+JPEG_QUALITY = 82
 OUTPUT_CT = "image/jpeg"
 
 
+
 def _make_data_url_from_minio(bucket: str, key: str) -> str:
+    s3 = s3_client()  # internal by default
+    obj = s3.get_object(Bucket=bucket, Key=key)
     s3 = s3_client()  # internal by default
     obj = s3.get_object(Bucket=bucket, Key=key)
     raw = obj["Body"].read()
@@ -42,8 +51,14 @@ def process_food_safety_scan(self, job_id: int):
         status=FoodSafetyScanJob.STATUS_RUNNING
     )
 
+
+    FoodSafetyScanJob.objects.filter(id=job_id).update(
+        status=FoodSafetyScanJob.STATUS_RUNNING
+    )
+
     bucket = settings.S3_BUCKET_FOOD_SCANS
     key = job.image_key
+
 
     try:
         if not key:
@@ -84,14 +99,16 @@ def process_food_safety_scan(self, job_id: int):
         raw = (response.output_text or "").strip()
         parsed = json.loads(raw)
 
+
         FoodSafetyScanJob.objects.filter(id=job_id).update(
             status=FoodSafetyScanJob.STATUS_SUCCESS,
             result=parsed,
             error="",
         )
 
-        # ✅ clear pointer; deletion happens in finally
+        # clear pointer; deletion happens in finally
         FoodSafetyScanJob.objects.filter(id=job_id).update(image_key="")
+
 
         return parsed
 
@@ -103,7 +120,7 @@ def process_food_safety_scan(self, job_id: int):
         raise
 
     finally:
-        # ✅ discard the file once (best-effort)
+        #  discard the file once (best-effort)
         try:
             if key:
                 s3 = s3_client()
