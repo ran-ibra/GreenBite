@@ -78,7 +78,10 @@ function App() {
                 <Route path="profile" element={<ProfileLayout />}>
                   <Route index element={<UserInfo />} />
                   {/* SubscriptionRoute*/}
-                  <Route element={<SubscriptionRoute />}></Route>
+                  <Route element={<SubscriptionRoute />}>
+                    <Route path="seller" element={<SellerOrdersPage />} />
+                  </Route>
+                  <Route path="buyer" element={<BuyerOrdersPage />} />
                   {/* AdminRoute*/}
                   <Route element={<AdminRoute />}></Route>
                 </Route>

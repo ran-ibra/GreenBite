@@ -1,11 +1,27 @@
-import { Clock, Star, ShoppingCart, Flag, MessageSquare ,Pencil, Trash2} from "lucide-react";
+import {
+  Clock,
+  Star,
+  ShoppingCart,
+  Flag,
+  MessageSquare,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/context/AuthProvider";
 import React from "react";
 
-const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onEdit , onDelete }) => {
+const ListingCard = ({
+  listing,
+  onOrder,
+  onViewDetails,
+  onReview,
+  onReport,
+  onEdit,
+  onDelete,
+}) => {
   const { user, isSubscribed } = useAuth();
   const isSeller = user?.role === "seller"; // adjust to your actual role field
   const {
@@ -23,10 +39,12 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
   } = listing;
   const [imgError, setImgError] = React.useState(false);
 
-  const daysLeft = Math.ceil((new Date(available_until) - new Date()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.ceil(
+    (new Date(available_until) - new Date()) / (1000 * 60 * 60 * 24)
+  );
   const isOwner = seller?.id === user?.id;
   const isExpired = daysLeft <= 0;
-  const isActive = (status === 'Active' || status === 'ACTIVE') && !isExpired;
+  const isActive = (status === "Active" || status === "ACTIVE") && !isExpired;
   const isAdmin = user?.role === "admin";
 
   const canManage = isOwner || isAdmin;
@@ -47,15 +65,19 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <img src="/images/listings.png" alt="Placeholder" className="w-16 h-16 opacity-50" />
+            <img
+              src="/images/listings.png"
+              alt="Placeholder"
+              className="w-16 h-16 opacity-50"
+            />
           </div>
         )}
         <Badge
           className={`absolute top-2 right-2 ${
-            isActive ? 'bg-secondary' : 'bg-muted'
+            isActive ? "bg-secondary" : "bg-muted"
           }`}
         >
-          {isExpired ? 'Expired' : status}
+          {isExpired ? "Expired" : status}
         </Badge>
       </div>
 
@@ -72,10 +94,12 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
         </div>
 
         {/* Average Rating - shown for sellers on their products or for all products */}
-        {(average_rating !== undefined) && (
+        {average_rating !== undefined && (
           <div className="flex items-center gap-2 text-sm mb-3">
             <Star className="h-4 w-4 text-warning fill-warning" />
-            <span className="font-medium">{average_rating?.toFixed(1) || 'N/A'}</span>
+            <span className="font-medium">
+              {average_rating?.toFixed(1) || "N/A"}
+            </span>
             <span className="text-muted-foreground">
               ({review_count || 0} reviews)
             </span>
@@ -84,7 +108,7 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
           <Clock className="h-4 w-4" />
-          <span>{daysLeft > 0 ? `${daysLeft} days left` : 'Expired'}</span>
+          <span>{daysLeft > 0 ? `${daysLeft} days left` : "Expired"}</span>
         </div>
 
         {canOrder && (
@@ -97,22 +121,29 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
           </div>
         )}
 
-        
-
-        <div className="flex gap-2 justify-center" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex gap-2 justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           {canOrder && (
             <>
-            <Button variant="outline" className="w-full" size="sm" onClick={() => onViewDetails?.(listing)}>
-              View Details
-            </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                size="sm"
+                onClick={() => onViewDetails?.(listing)}
+              >
+                View Details
+              </Button>
               <Button
                 className="flex-1"
                 onClick={() => onOrder?.(listing)}
                 disabled={!canOrder}
                 size="sm"
-              ><p flex className="flex">
-                <ShoppingCart className="h-4 w-4 mr-1" />
-                Order
+              >
+                <p flex className="flex">
+                  <ShoppingCart className="h-4 w-4 mr-1" />
+                  Order
                 </p>
               </Button>
 
@@ -121,7 +152,8 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
                 size="sm"
                 onClick={() => onReview?.(listing)}
               >
-                <MessageSquare className="h-4 w-4" />
+                <MessageSquare className="h-4 w-4 mx-auto" />
+                review
               </Button>
 
               <Button
@@ -129,25 +161,34 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
                 size="sm"
                 onClick={() => onReport?.(listing)}
               >
-                <Flag className="h-4 w-4" />
+                {" "}
+                <Flag className="h-4 w-4 mx-auto " />
+                report
               </Button>
             </>
           )}
           {canManage && (
             <>
               <div className="flex items-center gap-2 w-full justify-center">
-                <Button variant="outline" size="m" onClick={() => onEdit?.(listing)} title="Edit">
+                <Button
+                  variant="outline"
+                  size="m"
+                  onClick={() => onEdit?.(listing)}
+                  title="Edit"
+                >
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="danger" size="m" onClick={() => onDelete?.(listing)} title="Delete">
+                <Button
+                  variant="danger"
+                  size="m"
+                  onClick={() => onDelete?.(listing)}
+                  title="Delete"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </>
           )}
-
-          
-          
         </div>
       </CardContent>
     </Card>
@@ -155,4 +196,3 @@ const ListingCard = ({ listing, onOrder, onViewDetails, onReview, onReport , onE
 };
 
 export default ListingCard;
-

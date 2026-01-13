@@ -1,6 +1,12 @@
 import { motion as Motion } from "framer-motion";
 import { NavLink } from "react-router-dom";
-import { User, ShieldUser, Store, ChevronRight } from "lucide-react";
+import {
+  User,
+  ShieldUser,
+  Store,
+  ChevronRight,
+  ShoppingBag,
+} from "lucide-react";
 import { useState } from "react";
 
 function Sidebar({ isSubscribed, isAdmin }) {
@@ -15,13 +21,20 @@ function Sidebar({ isSubscribed, isAdmin }) {
       path: "/user/profile",
     },
 
+    {
+      id: "orders",
+      label: "My Orders",
+      icon: ShoppingBag,
+      path: "/user/profile/buyer",
+    },
+
     ...(isSubscribed
       ? [
           {
-            id: "my-lists",
-            label: "My Lists",
+            id: "Incoming-Orders",
+            label: "Incoming Orders",
             icon: Store,
-            path: "/user/notifications",
+            path: "/user/profile/seller",
           },
         ]
       : []),

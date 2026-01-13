@@ -3,33 +3,42 @@ import { useOrderDetails } from "@/hooks/orders/useOrderDetails";
 import { useAcceptOrder } from "@/hooks/orders/useAcceptOrders";
 import { useUpdateOrderStatus } from "@/hooks/orders/useUpdateOrderStatus";
 import { useNavigate } from "react-router-dom";
+import CreateReviewDialog from "@/components/marketplace/reviews/CreateReviewDialog";
 
-export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
-    const {data, isLoading, isError} = useOrderDetails(orderId, {
-        enabled: isOpen && !!orderId,
-    });
-    const acceptMutation = useAcceptOrder();
-    const updateStatusMutation = useUpdateOrderStatus();
-    const navigate = useNavigate();
+export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode }) {
+  const { data, isLoading, isError } = useOrderDetails(orderId, {
+    enabled: isOpen && !!orderId,
+  });
+  const acceptMutation = useAcceptOrder();
+  const updateStatusMutation = useUpdateOrderStatus();
+  const navigate = useNavigate();
+  const [reviewOpen, setReviewOpen] = React.useState(false);
 
-    if(!isOpen) return null;
+  if (!isOpen) return null;
 
-    const status = data?.status;
+  const status = data?.status;
 
-    const canBuyerCancel = mode === "buyer" && status === "PENDING";
-    const canSellerCancel = mode === "seller" && status === "PENDING";
-    const canSellerAccept = mode === "seller" && status === "PENDING";
-    const canSellerDeliver = mode === "seller" && status === "ACCEPTED";
+  const canBuyerCancel = mode === "buyer" && status === "PENDING";
+  const canSellerCancel = mode === "seller" && status === "PENDING";
+  const canBuyerReview =
+    mode === "buyer" && status === "DELIVERED" && !!data?.listing?.id;
 
-    const getOrderPathForMode = () => 
-      mode === "seller" ? "/home/marketplace/orders/seller" : "/home/marketplace/orders/buyer";
+  const canSellerAccept = mode === "seller" && status === "PENDING";
+  const canSellerDeliver = mode === "seller" && status === "ACCEPTED";
 
-    const goToOrdersStatus = (nextStatus) => {
-      onClose?.();
-      navigate(`${getOrderPathForMode()}?status=${encodeURIComponent(nextStatus)}`);
-    };
+  const getOrderPathForMode = () =>
+    mode === "seller"
+      ? "/home/marketplace/orders/seller"
+      : "/home/marketplace/orders/buyer";
 
-    return (
+  const goToOrdersStatus = (nextStatus) => {
+    onClose?.();
+    navigate(
+      `${getOrderPathForMode()}?status=${encodeURIComponent(nextStatus)}`
+    );
+  };
+
+  return (
     <div className="fixed inset-0 z-50">
       {/* overlay */}
       <div
@@ -70,7 +79,9 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
 
             {isError && (
               <div className="rounded-2xl border border-red-200 bg-white p-4">
-                <p className="font-semibold text-red-700">Failed to load order.</p>
+                <p className="font-semibold text-red-700">
+                  Failed to load order.
+                </p>
                 <p className="mt-1 text-sm text-red-700/80">
                   Please try again in a moment.
                 </p>
@@ -106,7 +117,9 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
 
                 {/* Listing card */}
                 <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-                  <p className="text-sm font-extrabold text-emerald-950">Listing</p>
+                  <p className="text-sm font-extrabold text-emerald-950">
+                    Listing
+                  </p>
 
                   <p className="mt-2 text-base font-bold text-emerald-950">
                     {data.listing?.title || "—"}
@@ -114,16 +127,22 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
 
                   <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-emerald-900/75 sm:grid-cols-2">
                     <p>
-                      <span className="font-semibold text-emerald-900">Price:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Price:
+                      </span>{" "}
                       {data.listing?.price} {data.listing?.currency} /{" "}
                       {data.listing?.unit}
                     </p>
                     <p>
-                      <span className="font-semibold text-emerald-900">Quantity:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Quantity:
+                      </span>{" "}
                       {data.quantity}
                     </p>
                     <p className="sm:col-span-2">
-                      <span className="font-semibold text-emerald-900">Total:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Total:
+                      </span>{" "}
                       {data.total_price} {data.listing?.currency}
                     </p>
                   </div>
@@ -131,32 +150,46 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
 
                 {/* Address card */}
                 <div className="mt-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-                  <p className="text-sm font-extrabold text-emerald-950">Address</p>
+                  <p className="text-sm font-extrabold text-emerald-950">
+                    Address
+                  </p>
 
                   <div className="mt-2 grid grid-cols-1 gap-2 text-sm text-emerald-900/75 sm:grid-cols-2">
                     <p className="sm:col-span-2">
-                      <span className="font-semibold text-emerald-900">Name:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Name:
+                      </span>{" "}
                       {data.address?.full_name || "—"}
                     </p>
                     <p>
-                      <span className="font-semibold text-emerald-900">Phone:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Phone:
+                      </span>{" "}
                       {data.address?.phone_number || "—"}
                     </p>
                     <p>
-                      <span className="font-semibold text-emerald-900">Email:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Email:
+                      </span>{" "}
                       {data.address?.email || "—"}
                     </p>
                     <p className="sm:col-span-2">
-                      <span className="font-semibold text-emerald-900">Address:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        Address:
+                      </span>{" "}
                       {data.address?.address_line || "—"}
                     </p>
                     <p className="sm:col-span-2">
-                      <span className="font-semibold text-emerald-900">City:</span>{" "}
+                      <span className="font-semibold text-emerald-900">
+                        City:
+                      </span>{" "}
                       {data.address?.city || "—"}
                     </p>
                     {data.address?.notes && (
                       <p className="sm:col-span-2">
-                        <span className="font-semibold text-emerald-900">Notes:</span>{" "}
+                        <span className="font-semibold text-emerald-900">
+                          Notes:
+                        </span>{" "}
                         {data.address.notes}
                       </p>
                     )}
@@ -180,7 +213,9 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
                         )
                       }
                     >
-                      {updateStatusMutation.isPending ? "Cancelling..." : "Cancel"}
+                      {updateStatusMutation.isPending
+                        ? "Cancelling..."
+                        : "Cancel"}
                     </button>
                   )}
 
@@ -199,7 +234,9 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
                         )
                       }
                     >
-                      {updateStatusMutation.isPending ? "Cancelling..." : "Cancel"}
+                      {updateStatusMutation.isPending
+                        ? "Cancelling..."
+                        : "Cancel"}
                     </button>
                   )}
 
@@ -237,20 +274,38 @@ export default function OrderDetailsDialog({ isOpen, orderId, onClose, mode}){
                         )
                       }
                     >
-                      {updateStatusMutation.isPending ? "Updating..." : "Mark Delivered"}
+                      {updateStatusMutation.isPending
+                        ? "Updating..."
+                        : "Mark Delivered"}
+                    </button>
+                  )}
+                  {/* Buyer write review */}
+                  {canBuyerReview && (
+                    <button
+                      type="button"
+                      className="rounded-full px-5 py-2 text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                      onClick={() => setReviewOpen(true)}
+                    >
+                      Write Review
                     </button>
                   )}
                 </div>
 
                 {/* Small hint */}
                 <p className="mt-4 text-xs text-emerald-900/60">
-                  After an action succeeds, you’ll be redirected to the orders list for that status.
+                  After an action succeeds, you’ll be redirected to the orders
+                  list for that status.
                 </p>
               </>
             )}
           </div>
         </div>
       </div>
+      <CreateReviewDialog
+        listingId={data?.listing?.id}
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+      />
     </div>
   );
 }

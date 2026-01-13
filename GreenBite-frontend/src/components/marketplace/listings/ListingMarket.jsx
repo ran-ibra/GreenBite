@@ -1,23 +1,33 @@
-import { useReducer, useEffect, useState } from 'react';
-import { Store, Plus, ShoppingBag } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import ListingCard from './ListingCard';
-import MarketplaceFilters from './FiltersMarket';
-import ListingDetailsDialog from '@/components/marketplace/dialog/listingDetails';
-import CreateListingDialog from '@/components/marketplace/dialog/CreatelistingDialog';
-import EditListingDialog from '@/components/marketplace/dialog/EditListingDialog';
-import { marketplaceReducer, initialMarketplaceState, MARKETPLACE_ACTIONS } from '@/reducers/marketplaceReducer';
-import { useAuth } from '@/context/AuthProvider';
-import { getListings } from '@/api/marketplace.api';
-import { toast } from 'react-hot-toast';
-import { useListings } from "@/hooks/uselistings";
-import OrderDetailsDialog from '@/pages/HomePages/Market/OrderDetailsDialog'
-import { useNavigate } from 'react-router-dom';
+import { useReducer, useEffect, useState } from "react";
+import { Store, Plus, ShoppingBag } from "lucide-react";
+import Button from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import ListingCard from "./ListingCard";
+import MarketplaceFilters from "./FiltersMarket";
+import ListingDetailsDialog from "@/components/marketplace/dialog/listingDetails";
+import CreateListingDialog from "@/components/marketplace/dialog/CreatelistingDialog";
+import EditListingDialog from "@/components/marketplace/dialog/EditListingDialog";
+import ListingReviewsDialog from "@/components/marketplace/dialog/ListingReviewsDialog";
 
+import {
+  marketplaceReducer,
+  initialMarketplaceState,
+  MARKETPLACE_ACTIONS,
+} from "@/reducers/marketplaceReducer";
+import { useAuth } from "@/context/AuthProvider";
+import { getListings } from "@/api/marketplace.api";
+import { toast } from "react-hot-toast";
+import { useListings } from "@/hooks/uselistings";
+import OrderDetailsDialog from "@/pages/HomePages/Market/OrderDetailsDialog";
+import { useNavigate } from "react-router-dom";
 
 const MarketplaceListings = () => {
-  const [state, dispatch] = useReducer(marketplaceReducer, initialMarketplaceState);
+  const [state, dispatch] = useReducer(
+    marketplaceReducer,
+    initialMarketplaceState
+  );
+  const [reviewsOpen, setReviewsOpen] = useState(false);
+
   const { listings, loading, error, filters } = state;
   const { user, isSubscribed } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -27,7 +37,7 @@ const MarketplaceListings = () => {
 
   const { fetchListings, create, update, remove } = useListings();
 
-  const canCreateListing = Boolean((isSubscribed ) || isAdmin);
+  const canCreateListing = Boolean(isSubscribed || isAdmin);
 
   // Dialog states
   const [selectedListing, setSelectedListing] = useState(null);
@@ -53,8 +63,10 @@ const MarketplaceListings = () => {
 
         if (cancelled) return;
 
-        const rawResults = Array.isArray(data) ? data : (data?.results ?? []);
-        const count = Array.isArray(data) ? data.length : (data?.count ?? rawResults.length);
+        const rawResults = Array.isArray(data) ? data : data?.results ?? [];
+        const count = Array.isArray(data)
+          ? data.length
+          : data?.count ?? rawResults.length;
 
         // Normalize backend fields to what UI expects
         const results = rawResults.map((l) => ({
@@ -100,12 +112,11 @@ const MarketplaceListings = () => {
   const handleOrder = (listing) => {
     if (!listing?.id) return;
     navigate(`/home/marketplace/checkout/${listing.id}`);
-
   };
 
   const handleReview = (listing) => {
     setSelectedListing(listing);
-    toast("Review not wired yet.");
+    setReviewsOpen(true);
   };
 
   const handleReport = (listing) => {
@@ -115,18 +126,21 @@ const MarketplaceListings = () => {
 
   const refreshListings = async () => {
     const { results, count } = await fetchListings(filters);
-    dispatch({ type: MARKETPLACE_ACTIONS.SET_LISTINGS, payload: { results, count } });
+    dispatch({
+      type: MARKETPLACE_ACTIONS.SET_LISTINGS,
+      payload: { results, count },
+    });
   };
 
   const handleDelete = async (listing) => {
     console.log("[handleDelete] clicked:", listing?.id);
-  try {
-    await remove(listing.id);
-    setDetailsOpen(false);
-    await refreshListings();
-  } catch (e) {
-    // toast already in hook
-  }
+    try {
+      await remove(listing.id);
+      setDetailsOpen(false);
+      await refreshListings();
+    } catch (e) {
+      // toast already in hook
+    }
   };
 
   const handleOpenCreate = () => {
@@ -153,7 +167,9 @@ const MarketplaceListings = () => {
   const handleEditSubmit = async (listingId, payload) => {
     try {
       const updated = await update(listingId, payload);
-      setSelectedListing((prev) => (prev?.id === listingId ? { ...prev, ...updated } : prev));
+      setSelectedListing((prev) =>
+        prev?.id === listingId ? { ...prev, ...updated } : prev
+      );
       setEditOpen(false);
       await refreshListings();
     } catch (e) {
@@ -169,33 +185,34 @@ const MarketplaceListings = () => {
           <h2 className="text-2xl font-bold text-foreground">Marketplace</h2>
 
           <Badge variant="outline" className="ml-2">
-            {isSubscribed ? 'Seller' : 'Buyer'}
+            {isSubscribed ? "Seller" : "Buyer"}
           </Badge>
         </div>
 
-
         <div className="flex gap-2">
-          {(isSubscribed || isAdmin) ? (
-          <Button onClick={handleOpenCreate}>
-            <p className="flex">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Listing
-            </p>
-          </Button>) : (
-            <div className="flex gap-2">
-
-            <Button onClick={() => navigate(`/home/marketplace/orders/buyer/`)}>
-              <p className="flex">
-                <ShoppingBag className="h-4 w-4 mr-2" />
-                your Orders
-              </p>
-            </Button>
-            <Button onClick={() => navigate('/pricing/')}>
+          {isSubscribed || isAdmin ? (
+            <Button onClick={handleOpenCreate}>
               <p className="flex">
                 <Plus className="h-4 w-4 mr-2" />
-                Become a Seller
+                Create Listing
               </p>
             </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate(`/home/marketplace/orders/buyer/`)}
+              >
+                <p className="flex">
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  your Orders
+                </p>
+              </Button>
+              <Button onClick={() => navigate("/pricing/")}>
+                <p className="flex">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Become a Seller
+                </p>
+              </Button>
             </div>
           )}
         </div>
@@ -220,9 +237,9 @@ const MarketplaceListings = () => {
       {!loading && !error && listings.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {listings.map((listing) => (
-            <ListingCard 
-              key={listing.id} 
-              listing={listing} 
+            <ListingCard
+              key={listing.id}
+              listing={listing}
               onViewDetails={handleViewDetails}
               onOrder={handleOrder}
               onReview={handleReview}
@@ -257,7 +274,12 @@ const MarketplaceListings = () => {
         listing={selectedListing}
         onSubmit={handleEditSubmit}
       />
-  
+
+      <ListingReviewsDialog
+        open={reviewsOpen}
+        onOpenChange={setReviewsOpen}
+        listing={selectedListing}
+      />
     </section>
   );
 };
