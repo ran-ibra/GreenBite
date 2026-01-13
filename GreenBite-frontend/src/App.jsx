@@ -20,7 +20,8 @@ import Activate from "./pages/Activate";
 import WasteLog from "./pages/HomePages/WasteLog/WasteLog";
 import GenerateRecipesPage from "./pages/HomePages/Recipes/GenerateRecipesPage";
 import MyMealsPage from "./pages/HomePages/Meals/MyMealsPage";
-
+import SubscriptionRoute from "@/routes/SubscriptionRoute";
+import AdminRoute from "@/routes/AdminRoute";
 import UserLayout from "./layouts/UserLayout";
 import Settings from "./pages/user/Settings";
 import MealPlansListPage from "./pages/HomePages/MealPlans/MealPlansListPage";
@@ -29,6 +30,13 @@ import MealPlanDetailPage from "./pages/HomePages/MealPlans/MealPlanDetailPage";
 import Pricing from "./pages/Pricing/Pricing";
 import PaymentResult from "@/pages/payment/PaymentResult";
 import Marketplace from "./pages/HomePages/Market/MarketPage";
+import CheckoutPage from "./pages/HomePages/Market/CheckoutPage";
+import BuyerOrdersPage from "./pages/HomePages/Market/BuyerOrdersPage";
+import SellerOrdersPage from "./pages/HomePages/Market/SellerOrdersPage";
+import ReportsPage from "./pages/reports/ReportsPage";
+import { Toaster } from "react-hot-toast";
+import ProfileLayout from "@/layouts/ProfileLayout";
+import UserInfo from "@/pages/marketplace/UserInfo";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +53,7 @@ function App() {
     <div className="App" data-theme="light">
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
+        <Toaster position="top-center" reverseOrder={false} />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} exact />
@@ -68,6 +77,22 @@ function App() {
             <Route element={<ProtectedRoute />}>
               {/* /User */}
               <Route path="/user" element={<UserLayout />}>
+                {/* /User/Profile */}
+                <Route path="profile" element={<ProfileLayout />}>
+                  <Route index element={<UserInfo />} />
+                  {/* SubscriptionRoute*/}
+                  <Route element={<SubscriptionRoute />}>
+                    <Route path="seller" element={<SellerOrdersPage />} />
+                  </Route>
+                  <Route path="buyer" element={<BuyerOrdersPage />} />
+                  {/* AdminRoute*/}
+                  <Route element={<AdminRoute />}>
+                    <Route path="reports">
+                      <Route index element={<ReportsPage />} />
+                    </Route>
+                  </Route>
+                </Route>
+                {/* /User/settings */}
                 <Route path="settings" element={<Settings />} />
               </Route>
               {/* --------------------------------------- */}
@@ -96,8 +121,15 @@ function App() {
                   <Route path="generate" element={<GenerateMealPlanPage />} />
                   <Route path=":id" element={<MealPlanDetailPage />} />
                 </Route>
+
                 <Route path="marketplace">
                   <Route index element={<Marketplace />} />
+                  <Route
+                    path="checkout/:listingId"
+                    element={<CheckoutPage />}
+                  />
+                  <Route path="orders/buyer" element={<BuyerOrdersPage />} />
+                  <Route path="orders/seller" element={<SellerOrdersPage />} />
                 </Route>
               </Route>
             </Route>
