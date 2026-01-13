@@ -37,7 +37,7 @@ const MarketplaceFilters = ({ filters, dispatch }) => {
             placeholder="Search listings..."
             value={filters.search}
             onChange={handleSearchChange}
-            className="pl-12 pr-4 h-12 rounded-xl border-2 border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 focus:outline-none bg-white text-gray-800 placeholder:text-gray-400 transition-all duration-300"
+            className="pl-12 pr-4 h-12 w-[100%] rounded-xl border-2 border-emerald-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 focus:outline-none bg-white text-gray-800 placeholder:text-gray-400 transition-all duration-300"
           />
         </div>
 
